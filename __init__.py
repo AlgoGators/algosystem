@@ -1,0 +1,9 @@
+"""AlgoSystem: A batteries-included pythonic library for AlgoGators members."""
+
+__version__ = "0.1.0"
+
+from . import backtesting
+from . import data
+from . import analysis
+from . import reporting
+from . import utils
