@@ -241,7 +241,6 @@ def create_performance_dashboard(backtest_results, benchmark=None, save_path=Non
     
     return fig
 
-# Create a simpler method that can run from command line without display
 def create_simple_performance_chart(backtest_results, output_path=None):
     """Create a simple performance chart for command-line usage."""
     equity = backtest_results['equity']
@@ -277,3 +276,4 @@ def create_simple_performance_chart(backtest_results, output_path=None):
         return output_path
     else:
         return fig
+    

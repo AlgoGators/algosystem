@@ -94,8 +94,8 @@ def analyze_drawdowns(equity):
     
     # Find drawdown periods
     is_drawdown = drawdown < 0
-    drawdown_start = is_drawdown & ~is_drawdown.shift(1).fillna(False)
-    drawdown_end = ~is_drawdown & is_drawdown.shift(1).fillna(False)
+    drawdown_start = is_drawdown & ~is_drawdown.shift(1, fill_value=False)
+    drawdown_end = ~is_drawdown & is_drawdown.shift(1, fill_value=False)
     
     # Extract start and end dates
     start_dates = drawdown[drawdown_start].index
