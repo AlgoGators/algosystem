@@ -2,14 +2,15 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 
-from algosystem.utils.logging import get_logger
-from algosystem.backtesting.metrics import calculate_metrics, calculate_advanced_metrics, analyze_drawdowns
+from algosystem.utils._logging import get_logger
 from algosystem.backtesting.visualization import (
     create_equity_chart,
     create_drawdown_chart,
     create_monthly_returns_heatmap,
     create_rolling_sharpe_chart
 )
+
+from algosystem.backtesting import metrics
 
 logger = get_logger(__name__)
 
@@ -66,6 +67,10 @@ class Engine:
         self.commission = commission  # Not used in this simplified logic
         
         self.results = None
+
+        # This variable is used to store already-computed data to reduce redundancy
+        self.data_series = {}
+
         logger.info(f"Initialized backtest from {self.start_date.date()} to {self.end_date.date()}")
         
     def run(self):
@@ -109,15 +114,8 @@ class Engine:
         """
         Calculate and return performance metrics.
         """
-        output = {}
-        if not advanced_metrics:
-            output = calculate_metrics(self.results)
-        else:
-            output = calculate_advanced_metrics(self.results)
+        output = metrics.quant_stats(self.results['equity'])
         
-        if drawdown_analysis:
-            drawdown_data = analyze_drawdowns(self.results)
-            output.update(drawdown_data)
         return output
     
     def print_metrics(self, advanced_metrics=True, drawdown_analysis=False):

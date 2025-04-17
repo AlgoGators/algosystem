@@ -1,20 +1,19 @@
-# algosystem/cli/commands.py
-
 import click
-from algosystem.utils.decorators import expose, get_exposed
+from algosystem.utils.config import config_UI
 
-@expose
-def my_command():
-    """Example command exposed via a decorator."""
-    # Your business logic here.
-    return "Command Executed!"
+@click.command(context_settings=dict(help_option_names=['-h', '--help']))
+@click.argument(
+    "config_path",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False),
+    metavar="PATH",
+)
+def cli(config_path):
+    """
+    Launch the configuration UI for the given JSON file.
 
-@click.command()
-def cli():
-    """CLI entry point that runs an exposed command."""
-    # In a more complex setup, you might iterate over all exposed functions.
-    result = my_command()  # or choose based on some CLI argument
-    click.echo(result)
+    PATH  Path to your config file (must exist).
+    """
+    config_UI(config_path)
 
 if __name__ == "__main__":
     cli()

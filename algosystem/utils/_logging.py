@@ -1,7 +1,9 @@
 import logging
 import os
 from datetime import datetime
-from .config import get_config
+from algosystem.utils.config import load_config
+
+logging.getLogger(__name__)
 
 def setup_logging(level=None, log_file=None):
     """
@@ -19,7 +21,7 @@ def setup_logging(level=None, log_file=None):
     logger : logging.Logger
         Root logger
     """
-    config = get_config()
+    config = load_config()
     
     # Get configuration values if not provided
     if level is None:

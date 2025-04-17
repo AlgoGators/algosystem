@@ -1,6 +1,7 @@
 import quantstats as qs
-import pandas as pd
 import numpy as np
+import pandas as pd
+
 
 # Time series
 def rolling_sharpe(returns, window=30):
@@ -147,3 +148,15 @@ def quant_stats(strategy, benchmark):
             results[func_name] = f"Error in {func_name}: {e}"
 
     return results
+
+if __name__ == "__main__":
+    dates = pd.date_range(start="2020-01-01", periods=1000, freq="B")  
+    data = pd.Series(np.random.randn(1000).cumsum(), index=dates, name="Strategy")
+    benchmark = pd.Series(np.random.randn(1000).cumsum(), index=dates, name="Benchmark")
+
+    results = quant_stats(data, benchmark)
+
+    for key, value in results.items():
+        print(f"{key}: {type(value)}, {value}")
+
+    
