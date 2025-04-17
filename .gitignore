@@ -3,3 +3,4 @@ algosystem.egg-info
 .pytest_cache
 .coverage
 __pycache__
+/plots
