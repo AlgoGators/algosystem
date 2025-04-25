@@ -13,6 +13,8 @@ if __name__ == "__main__":
     data = pd.Series(np.random.randn(1000).cumsum(), index=dates, name="Strategy")
     benchmark = pd.Series(np.random.randn(1000).cumsum(), index=dates, name="Benchmark")
 
+    data.to_csv("strategy.csv")
+    benchmark.to_csv("benchmark.csv")
     engine = Engine(data)
 
     engine.run()

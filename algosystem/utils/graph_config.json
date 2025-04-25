@@ -1,3 +1,28 @@
 {
-    "graphs": []
+    "graphs": [
+        {
+            "id": 2157940446288,
+            "type": "scatter",
+            "title": "Scatter Graph 1",
+            "config": {}
+        },
+        {
+            "id": 2158012825136,
+            "type": "scatter",
+            "title": "Scatter Graph 2",
+            "config": {}
+        },
+        {
+            "id": 2158013241200,
+            "type": "line",
+            "title": "Line Graph 3",
+            "config": {}
+        },
+        {
+            "id": 2158013313456,
+            "type": "bar",
+            "title": "Bar Graph 4",
+            "config": {}
+        }
+    ]
 }

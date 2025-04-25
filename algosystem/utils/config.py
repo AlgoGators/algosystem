@@ -5,10 +5,8 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout
                            QWidget, QPushButton, QLabel, QMenu, QDialog, 
                            QGridLayout, QComboBox, QColorDialog, QSlider, QSpinBox,
                            QDoubleSpinBox, QCheckBox, QGroupBox, QToolButton, QScrollArea)
-from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPoint
-from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtCore import pyqtSignal, QPoint
 import pyqtgraph as pg
-from functools import partial
 
 # For saving and loading configurations
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "graph_config.json")
@@ -376,8 +374,12 @@ class GraphDashboard(QMainWindow):
             
             self.graphs.append(graph)
 
-def config_UI():
+def config_UI(strategy_path=None):
+    """Main function to run the Graph Dashboard"""
     app = pg.mkQApp("Graph Dashboard")
     dashboard = GraphDashboard()
     dashboard.show()
     sys.exit(app.exec())
+
+if __name__ == "__main__":
+    config_UI()
