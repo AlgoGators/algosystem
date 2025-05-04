@@ -34,9 +34,7 @@ def launch(config, data_dir):
 @cli.command()
 @click.argument('input_file', type=click.Path(exists=True))
 @click.argument('output_file', type=click.Path())
-@click.option('--config', '-c', type=click.Path(exists=True), required=True,
-              help='Path to a dashboard configuration file')
-def render(input_file, output_file, config):
+def render(input_file, output_file,):
     """
     Render a dashboard from a configuration file and CSV data.
     
@@ -49,7 +47,7 @@ def render(input_file, output_file, config):
     from algosystem.backtesting.engine import Engine
     
     # Load the dashboard configuration
-    with open(config, 'r') as f:
+    with open('algosystem/utils/graph_config.json', 'r') as f:
         dashboard_config = json.load(f)
     
     # Load the CSV data
