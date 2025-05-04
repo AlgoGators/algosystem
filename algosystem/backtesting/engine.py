@@ -17,8 +17,8 @@ logger = get_logger(__name__)
 class Engine:
     """Backtesting engine that uses a price series (e.g. portfolio value) as input."""
     
-    def __init__(self, data, start_date=None, end_date=None, 
-                 initial_capital=None, commission=0.001, price_column=None):
+    def __init__(self, data, benchmark, start_date=None, end_date=None, 
+                 initial_capital=None, price_column=None):
         """
         Initialize the backtesting engine using a price series.
         
@@ -33,8 +33,6 @@ class Engine:
             End date for the backtest (YYYY-MM-DD). Defaults to the last date in data.
         initial_capital : float, optional
             Initial capital. If not provided, inferred as the first value of the price series.
-        commission : float, default 0.001
-            (Not used in the current logic, but kept for backward compatibility.)
         price_column : str, optional
             If data is a DataFrame with multiple columns, specify the column name representing
             portfolio value.
@@ -53,6 +51,9 @@ class Engine:
         else:
             raise TypeError("data must be a pandas DataFrame or Series")
         
+        
+        self.benchmark_series = benchmark.copy() if benchmark is not None else None
+
         # Set date range based on provided dates or available index
         self.start_date = pd.to_datetime(start_date) if start_date else self.price_series.index[0]
         self.end_date = pd.to_datetime(end_date) if end_date else self.price_series.index[-1]
@@ -64,12 +65,10 @@ class Engine:
         
         # Use the provided initial_capital or infer it from the first value
         self.initial_capital = initial_capital if initial_capital is not None else self.price_series.iloc[0]
-        self.commission = commission  # Not used in this simplified logic
         
         self.results = None
-
-        # This variable is used to store already-computed data to reduce redundancy
-        self.data_series = {}
+        self.metrics = None
+        self.plots = None
 
         logger.info(f"Initialized backtest from {self.start_date.date()} to {self.end_date.date()}")
         
@@ -91,6 +90,13 @@ class Engine:
         
         # Normalize the price series relative to its first value and scale by initial capital.
         equity_series = self.initial_capital * (self.price_series / self.price_series.iloc[0])
+
+        logger.info("Calculating performance metrics")
+        self.metrics = metrics.calculate_metrics(equity_series, self.benchmark_series)
+
+        logger.info("Generating performance plots")
+        # Fix: Pass benchmark_series instead of initial_capital
+        self.plots = metrics.calculate_time_series_data(equity_series, self.benchmark_series)
         
         self.results = {
             'equity': equity_series,
@@ -101,7 +107,9 @@ class Engine:
             'returns': (equity_series.iloc[-1] - self.initial_capital) / self.initial_capital,
             'data': self.price_series,
             'start_date': self.start_date,
-            'end_date': self.end_date
+            'end_date': self.end_date,
+            'metrics': self.metrics,
+            'plots': self.plots,
         }
         
         logger.info(f"Backtest completed. Final return: {self.results['returns']:.2%}")
@@ -110,19 +118,14 @@ class Engine:
     def get_results(self):
         return self.results
 
-    def get_metrics(self, advanced_metrics=True, drawdown_analysis=False):
-        """
-        Calculate and return performance metrics.
-        """
-        output = metrics.quant_stats(self.results['equity'])
-        
-        return output
+    def get_metrics(self):
+        return self.metrics
     
-    def print_metrics(self, advanced_metrics=True, drawdown_analysis=False):
+    def print_metrics(self):
         """
         Print performance metrics to console.
         """
-        metrics = self.get_metrics(advanced_metrics, drawdown_analysis)
+        metrics = self.get_metrics()
         logger.info("Performance Metrics:")
         for key, value in metrics.items():
             logger.info(f"{key}: {value}")
