@@ -1,28 +1,46 @@
 {
-    "graphs": [
+    "plots": [
         {
-            "id": 2157940446288,
-            "type": "scatter",
-            "title": "Scatter Graph 1",
-            "config": {}
+            "id": 2423685496048,
+            "type": "Equity Curve",
+            "title": "Equity Curve",
+            "config": {},
+            "position": {
+                "row": 0,
+                "col": 0
+            }
         },
         {
-            "id": 2158012825136,
-            "type": "scatter",
-            "title": "Scatter Graph 2",
-            "config": {}
+            "id": 2423686015376,
+            "type": "Drawdown Chart",
+            "title": "Drawdown Chart",
+            "config": {},
+            "position": {
+                "row": 0,
+                "col": 1
+            }
         },
         {
-            "id": 2158013241200,
-            "type": "line",
-            "title": "Line Graph 3",
-            "config": {}
+            "id": 2424164977552,
+            "type": "Monthly Returns Heatmap",
+            "title": "Monthly Returns Heatmap",
+            "config": {},
+            "position": {
+                "row": 1,
+                "col": 0
+            }
         },
         {
-            "id": 2158013313456,
-            "type": "bar",
-            "title": "Bar Graph 4",
-            "config": {}
+            "id": 2424165098960,
+            "type": "Rolling Sharpe Ratio",
+            "title": "Rolling Sharpe Ratio",
+            "config": {},
+            "position": {
+                "row": 1,
+                "col": 1
+            }
         }
-    ]
+    ],
+    "max_cols": 2,
+    "active_data_source": null
 }

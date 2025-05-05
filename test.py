@@ -5,7 +5,6 @@ from algosystem.backtesting.engine import Engine
 
 from rich import print
 
-
 if __name__ == "__main__":
     # Create more realistic market data
     dates = pd.date_range(start="2020-01-01", periods=1000, freq="B")
@@ -38,12 +37,13 @@ if __name__ == "__main__":
     results = engine.get_results()
     metrics = results.get('metrics', {})
     
-    print("\nKey Performance Metrics:")
-    important_metrics = [
-        'total_return', 'annualized_return', 'annualized_volatility', 
-        'sharpe_ratio', 'max_drawdown', 'calmar_ratio'
-    ]
-    
-    for metric in important_metrics:
-        if metric in metrics:
-            print(f"{metric}: {metrics[metric]:.4f}")
+    print("Available metrics:", metrics.keys())
+
+    plots = results.get('plots', {})
+    print("Available plots:", plots.keys())
+
+    # Generate the dashboard
+    dashboard_path = engine.generate_dashboard()
+
+    print(f"Dashboard generated at: {dashboard_path}")
+    print("Open this file in a web browser to view your dashboard.")
