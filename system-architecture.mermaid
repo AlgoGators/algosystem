@@ -1,0 +1,44 @@
+graph TD
+    A[AlgoSystem] --> B[Backtesting]
+    A --> C[Analysis]
+    A --> D[Dashboard]
+    A --> E[Utils]
+    A --> F[CLI]
+    
+    %% Backtesting Module
+    B --> B1[Engine - Core backtesting logic]
+    B --> B2[Metrics - Performance calculations]
+    B --> B3[Visualization - Plot generation]
+    B --> B4[Dashboard Generator - HTML output]
+    
+    %% Analysis Module
+    C --> C1[Risk - VaR, CVaR, stress testing]
+    C --> C2[Performance - Returns analysis]
+    C --> C3[Portfolio - Optimization, efficient frontier]
+    
+    %% Dashboard Module
+    D --> D1[Dashboard Module - Interactive UI]
+    D --> D2[Plot Registry - Chart catalog]
+    D --> D3[Chart Handlers - Visualization logic]
+    
+    %% Utils Module
+    E --> E1[Config - System configuration]
+    E --> E2[Logging - Debug output]
+    E --> E3[Decorators - Function wrappers]
+    
+    %% CLI Module
+    F --> F1[Commands - Command-line tools]
+    
+    %% Data Flow
+    B1 -->|Results| B2
+    B2 -->|Metrics| B3
+    B3 -->|Figures| B4
+    B4 -->|Dashboard| G[HTML/CSS/JS Output]
+    
+    C1 -->|Risk Metrics| B2
+    C2 -->|Performance Data| B2
+    C3 -->|Portfolio Analysis| B2
+    
+    D1 -->|UI Events| D2
+    D2 -->|Chart Specs| D3
+    F1 -->|CLI Args| B1
