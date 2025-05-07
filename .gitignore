@@ -1,6 +1,7 @@
 venv
 algosystem.egg-info
 .pytest_cache
+poetry.lock
 .coverage
 __pycache__
 /plots

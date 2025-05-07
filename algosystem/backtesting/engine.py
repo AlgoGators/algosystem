@@ -1,19 +1,9 @@
 import pandas as pd
 import numpy as np
 import os
-import shutil
-import json
-import webbrowser
 import matplotlib.pyplot as plt
 
 from algosystem.utils._logging import get_logger
-from algosystem.backtesting.visualization import (
-    create_equity_chart,
-    create_drawdown_chart,
-    create_monthly_returns_heatmap,
-    create_rolling_sharpe_chart
-)
-
 from algosystem.backtesting import metrics
 
 logger = get_logger(__name__)
@@ -21,7 +11,7 @@ logger = get_logger(__name__)
 class Engine:
     """Backtesting engine that uses a price series (e.g. portfolio value) as input."""
     
-    def __init__(self, data, benchmark, start_date=None, end_date=None, 
+    def __init__(self, data, benchmark=None, start_date=None, end_date=None, 
                  initial_capital=None, price_column=None):
         """
         Initialize the backtesting engine using a price series.
@@ -29,8 +19,10 @@ class Engine:
         Parameters:
         -----------
         data : pd.DataFrame or pd.Series
-            Historical data of the strategy’s portfolio value.
+            Historical data of the strategy's portfolio value.
             If a DataFrame is provided, you must either pass a price_column or ensure it has one column.
+        benchmark : pd.DataFrame or pd.Series, optional
+            Benchmark data to compare against
         start_date : str, optional
             Start date for the backtest (YYYY-MM-DD). Defaults to the first date in data.
         end_date : str, optional
@@ -55,14 +47,29 @@ class Engine:
         else:
             raise TypeError("data must be a pandas DataFrame or Series")
         
-        
-        self.benchmark_series = benchmark.copy() if benchmark is not None else None
+        # Handle benchmark data
+        self.benchmark_series = None
+        if benchmark is not None:
+            if isinstance(benchmark, pd.DataFrame):
+                if benchmark.shape[1] == 1:
+                    self.benchmark_series = benchmark.iloc[:, 0].copy()
+                else:
+                    raise ValueError("Benchmark DataFrame has multiple columns; only first column will be used")
+            elif isinstance(benchmark, pd.Series):
+                self.benchmark_series = benchmark.copy()
+            else:
+                raise TypeError("benchmark must be a pandas DataFrame or Series")
 
         # Set date range based on provided dates or available index
         self.start_date = pd.to_datetime(start_date) if start_date else self.price_series.index[0]
         self.end_date = pd.to_datetime(end_date) if end_date else self.price_series.index[-1]
         mask = (self.price_series.index >= self.start_date) & (self.price_series.index <= self.end_date)
         self.price_series = self.price_series.loc[mask]
+        
+        # Apply same date filter to benchmark if it exists
+        if self.benchmark_series is not None:
+            benchmark_mask = (self.benchmark_series.index >= self.start_date) & (self.benchmark_series.index <= self.end_date)
+            self.benchmark_series = self.benchmark_series.loc[benchmark_mask]
         
         if self.price_series.empty:
             raise ValueError("No data available for the specified date range")
@@ -71,7 +78,7 @@ class Engine:
         self.initial_capital = initial_capital if initial_capital is not None else self.price_series.iloc[0]
         
         self.results = None
-        self.metrics = None
+        self.metrics_data = None
         self.plots = None
 
         logger.info(f"Initialized backtest from {self.start_date.date()} to {self.end_date.date()}")
@@ -96,23 +103,22 @@ class Engine:
         equity_series = self.initial_capital * (self.price_series / self.price_series.iloc[0])
 
         logger.info("Calculating performance metrics")
-        self.metrics = metrics.calculate_metrics(equity_series, self.benchmark_series)
+        # Calculate metrics
+        self.metrics_data = metrics.calculate_metrics(equity_series, self.benchmark_series)
 
-        logger.info("Generating performance plots")
-        # Fix: Pass benchmark_series instead of initial_capital
+        logger.info("Calculating time series data")
+        # Calculate time series data
         self.plots = metrics.calculate_time_series_data(equity_series, self.benchmark_series)
         
         self.results = {
             'equity': equity_series,
-            # Positions and trades are not computed in this model because the data
-            # represents the final portfolio value. If desired, you can derive additional metrics.
             'initial_capital': self.initial_capital,
             'final_capital': equity_series.iloc[-1],
             'returns': (equity_series.iloc[-1] - self.initial_capital) / self.initial_capital,
             'data': self.price_series,
             'start_date': self.start_date,
             'end_date': self.end_date,
-            'metrics': self.metrics,
+            'metrics': self.metrics_data,
             'plots': self.plots,
         }
         
@@ -120,99 +126,108 @@ class Engine:
         return self.results
     
     def get_results(self):
+        """Get the full results dictionary."""
+        if self.results is None:
+            logger.warning("No results available. Run the backtest first.")
+            return {}
         return self.results
 
     def get_metrics(self):
-        return self.metrics
+        """Get the metrics dictionary."""
+        if self.metrics_data is None:
+            logger.warning("No metrics available. Run the backtest first.")
+            return {}
+        return self.metrics_data
     
     def print_metrics(self):
-        """
-        Print performance metrics to console.
-        """
+        """Print performance metrics to console."""
         metrics = self.get_metrics()
+        if not metrics:
+            logger.warning("No metrics available. Run the backtest first.")
+            return
+            
         logger.info("Performance Metrics:")
         for key, value in metrics.items():
             logger.info(f"{key}: {value}")
     
-    def get_plots(self, output_path=None, show_charts=True):
+    def get_plots(self, show_charts=False):
         """
-        Generate, save, and return performance plots.
-
+        Get the plot data and optionally display charts.
+        
         Parameters:
         -----------
-        output_path : str, optional
-            Directory in which to save the plots.
-            If not provided, defaults to a subfolder named 'plots' in the current working directory.
         show_charts : bool, optional
-            If True, display the charts interactively. If False, the charts will not be shown.
-
+            Whether to display the charts using matplotlib. Defaults to False.
+            
         Returns:
         --------
         plots : dict
-            Dictionary containing matplotlib figure objects for each plot.
+            Dictionary containing plot data
         """
-        # Extract the equity series from the results for those plots that require it:
-        equity_series = self.results['equity']
-
-        equity_chart = create_equity_chart(equity_series)
-        drawdown_chart = create_drawdown_chart(equity_series)
-        monthly_returns_heatmap = create_monthly_returns_heatmap(equity_series)
-        rolling_sharpe_chart = create_rolling_sharpe_chart(equity_series)
-
-        plots = {
-            'equity_chart': equity_chart,
-            'drawdown_chart': drawdown_chart,
-            'monthly_returns_heatmap': monthly_returns_heatmap,
-            'rolling_sharpe_chart': rolling_sharpe_chart
-        }
-
-        # Set default output path if none provided; default to "./plots"
-        if output_path is None:
-            output_path = os.path.join(os.getcwd(), "plots")
-        else:
-            output_path = os.path.abspath(output_path)
-
-        # Create the directory if it doesn't exist.
-        os.makedirs(output_path, exist_ok=True)
-
-        # Save each plot to a separate PNG file.
-        for key, fig in plots.items():
-            file_path = os.path.join(output_path, f"{key}.png")
-            fig.savefig(file_path)
-            print(f"Saved {key} to {file_path}")
-
-        # If show_charts is True, display the plots interactively.
+        if self.plots is None:
+            logger.warning("No plots available. Run the backtest first.")
+            return {}
+            
         if show_charts:
-            # Turn interactive mode off to force blocking behavior.
-            plt.ioff()
-            # This call will block until all open figure windows are closed.
-            plt.show(block=True)
-
-        return plots
+            self._display_charts()
+            
+        return self.plots
     
-    def _format_time_series(self, series):
-        """Format a time series for the dashboard"""
-        if series is None or series.empty:
-            return []
-        
-        result = []
-        for date, value in series.items():
-            # Convert date to string
-            date_str = date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date)
+    def _display_charts(self):
+        """Display important charts using matplotlib."""
+        if self.results is None or self.plots is None:
+            logger.warning("No results available. Run the backtest first.")
+            return
             
-            # Handle NumPy types
-            if isinstance(value, (np.integer, np.floating)):
-                value_float = float(value.item())
-            else:
-                value_float = float(value) if pd.notna(value) else None
-            
-            result.append({'date': date_str, 'value': value_float})
+        # Create a figure with 2x2 subplots
+        fig, axs = plt.subplots(2, 2, figsize=(14, 10))
         
-        return result
-
+        # Plot equity curve
+        axs[0, 0].plot(self.results['equity'])
+        axs[0, 0].set_title('Equity Curve')
+        axs[0, 0].set_xlabel('Date')
+        axs[0, 0].set_ylabel('Value')
+        axs[0, 0].grid(True)
+        
+        # Plot drawdown
+        if 'drawdown_series' in self.plots:
+            axs[0, 1].fill_between(
+                self.plots['drawdown_series'].index,
+                0,
+                self.plots['drawdown_series'],
+                color='red',
+                alpha=0.3
+            )
+            axs[0, 1].set_title('Drawdown')
+            axs[0, 1].set_xlabel('Date')
+            axs[0, 1].set_ylabel('Drawdown')
+            axs[0, 1].grid(True)
+        
+        # Plot rolling Sharpe ratio
+        if 'rolling_sharpe' in self.plots:
+            axs[1, 0].plot(self.plots['rolling_sharpe'])
+            axs[1, 0].set_title('Rolling Sharpe Ratio')
+            axs[1, 0].set_xlabel('Date')
+            axs[1, 0].set_ylabel('Sharpe Ratio')
+            axs[1, 0].grid(True)
+        
+        # Plot monthly returns
+        if 'monthly_returns' in self.plots:
+            monthly_returns = self.plots['monthly_returns']
+            axs[1, 1].bar(monthly_returns.index, monthly_returns)
+            axs[1, 1].set_title('Monthly Returns')
+            axs[1, 1].set_xlabel('Date')
+            axs[1, 1].set_ylabel('Return')
+            axs[1, 1].grid(True)
+        
+        plt.tight_layout()
+        plt.show()
+        
+        return fig
+        
     def generate_dashboard(self, output_dir=None, open_browser=True, config_path=None):
         """
-        Generate an HTML dashboard for the backtest results based on graph_config.json
+        Generate an HTML dashboard for the backtest results.
         
         Parameters:
         -----------
@@ -221,12 +236,16 @@ class Engine:
         open_browser : bool, optional
             Whether to automatically open the dashboard in browser. Defaults to True
         config_path : str, optional
-            Path to the graph configuration file. Defaults to utils/graph_config.json
+            Path to the graph configuration file.
             
         Returns:
         --------
         dashboard_path : str
             Path to the generated dashboard HTML file
         """
-        from .dashboard.dashboard_generator import generate_dashboard
+        if self.results is None:
+            logger.warning("No results available. Running backtest first.")
+            self.run()
+            
+        from algosystem.backtesting.dashboard.dashboard_generator import generate_dashboard
         return generate_dashboard(self, output_dir, open_browser, config_path)

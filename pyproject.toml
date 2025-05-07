@@ -39,6 +39,7 @@ pyqt6 = "^6.9.0"
 pyqtgraph = "^0.13.7"
 pyarrow = "^19.0.1"
 rich = "^14.0.0"
+flask = "^3.1.0"
 
 [tool.poetry.scripts]
 algosystem = "algosystem.cli.commands:cli"
