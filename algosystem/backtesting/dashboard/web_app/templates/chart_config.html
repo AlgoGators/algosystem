@@ -1,0 +1,143 @@
+<!-- File: algosystem/backtesting/dashboard/web_app/templates/chart_config.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart Configuration</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard_editor.css') }}">
+    <style>
+        .config-form {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .form-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Chart Configuration: {{ chart.title }}</h1>
+        </header>
+        
+        <div class="config-form">
+            <form id="chart-config-form">
+                <input type="hidden" name="chart_id" value="{{ chart.id }}">
+                
+                <div class="form-group">
+                    <label for="title">Chart Title</label>
+                    <input type="text" class="form-control" id="title" name="title" value="{{ chart.title }}">
+                </div>
+                
+                <!-- Common configuration options -->
+                <div class="form-group">
+                    <label for="y_axis_label">Y-Axis Label</label>
+                    <input type="text" class="form-control" id="y_axis_label" name="y_axis_label" 
+                           value="{{ chart.config.get('y_axis_label', '') }}">
+                </div>
+                
+                <!-- Type-specific configuration options -->
+                {% if chart.type == 'LineChart' %}
+                    <div class="form-group">
+                        <label for="line_color">Line Color</label>
+                        <input type="color" class="form-control" id="line_color" name="line_color" 
+                               value="{{ chart.config.get('line_color', '#2ecc71') }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="line_width">Line Width</label>
+                        <input type="number" class="form-control" id="line_width" name="line_width" 
+                               value="{{ chart.config.get('line_width', 2) }}" min="1" max="10">
+                    </div>
+                    
+                    {% if chart.id == 'rolling_sharpe' %}
+                        <div class="form-group">
+                            <label for="window_size">Window Size (days)</label>
+                            <input type="number" class="form-control" id="window_size" name="window_size" 
+                                   value="{{ chart.config.get('window_size', 252) }}" min="10" max="500">
+                        </div>
+                    {% endif %}
+                    
+                    <div class="form-group">
+                        <label for="percentage_format">Show as Percentage</label>
+                        <input type="checkbox" id="percentage_format" name="percentage_format" 
+                               {% if chart.config.get('percentage_format', False) %}checked{% endif %}>
+                    </div>
+                {% endif %}
+                
+                <div class="form-actions">
+                    <button type="button" id="cancel-btn" class="btn">Cancel</button>
+                    <button type="submit" class="btn">Save Configuration</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('cancel-btn').addEventListener('click', function() {
+            window.close();
+        });
+        
+        document.getElementById('chart-config-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Collect form data
+            const formData = new FormData(this);
+            const config = {
+                title: formData.get('title'),
+                config: {
+                    y_axis_label: formData.get('y_axis_label')
+                }
+            };
+            
+            // Add type-specific configuration
+            {% if chart.type == 'LineChart' %}
+                config.config.line_color = formData.get('line_color');
+                config.config.line_width = parseInt(formData.get('line_width'), 10);
+                config.config.percentage_format = formData.get('percentage_format') === 'on';
+                
+                {% if chart.id == 'rolling_sharpe' %}
+                    config.config.window_size = parseInt(formData.get('window_size'), 10);
+                {% endif %}
+            {% endif %}
+            
+            // Send to parent window
+            window.opener.postMessage({
+                type: 'chart_config_update',
+                chart_id: formData.get('chart_id'),
+                config: config
+            }, '*');
+            
+            // Close window
+            window.close();
+        });
+    </script>
+</body>
+</html>

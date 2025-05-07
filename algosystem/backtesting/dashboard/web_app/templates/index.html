@@ -1,0 +1,95 @@
+<!-- File: algosystem/backtesting/dashboard/web_app/templates/index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlgoSystem Dashboard Editor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard_editor.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AlgoSystem Dashboard Editor</h1>
+            <div class="controls">
+                <button id="save-config">Save Configuration</button>
+                <button id="reset-config">Reset to Default</button>
+                <button id="view-dashboard" {% if not data_loaded %}disabled{% endif %}>View Dashboard</button>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="upload-section">
+                    <h3>Upload Data</h3>
+                    <form id="upload-form" enctype="multipart/form-data">
+                        <input type="file" id="csv-file" name="file" accept=".csv">
+                        <button type="submit" id="upload-button">Upload & Process</button>
+                    </form>
+                    <div id="upload-status"></div>
+                </div>
+                
+                <div class="components-section">
+                    <h3>Available Components</h3>
+                    
+                    <div class="component-category">
+                        <h4>Metrics (max 4 per row)</h4>
+                        <div class="component-list" id="metrics-list">
+                            {% for metric in available_metrics %}
+                            <div class="component-item metric-item" 
+                                 data-id="{{ metric.id }}"
+                                 data-type="{{ metric.type }}"
+                                 data-title="{{ metric.title }}"
+                                 data-value-key="{{ metric.value_key }}">
+                                <span class="component-title">{{ metric.title }}</span>
+                                <span class="component-description">{{ metric.description }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="component-category">
+                        <h4>Charts (max 2 per row)</h4>
+                        <div class="component-list" id="charts-list">
+                            {% for chart in available_charts %}
+                            <div class="component-item chart-item" 
+                                 data-id="{{ chart.id }}"
+                                 data-type="{{ chart.type }}"
+                                 data-title="{{ chart.title }}"
+                                 data-data-key="{{ chart.data_key }}">
+                                <span class="component-title">{{ chart.title }}</span>
+                                <span class="component-description">{{ chart.description }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dashboard-preview">
+                <h3>Dashboard Layout</h3>
+                <div class="metrics-section">
+                    <h4>Metrics</h4>
+                    <div class="metrics-rows" id="metrics-container">
+                        <!-- Metrics rows will be populated here -->
+                    </div>
+                    <button id="add-metrics-row">Add Metrics Row</button>
+                </div>
+                
+                <div class="charts-section">
+                    <h4>Charts</h4>
+                    <div class="charts-rows" id="charts-container">
+                        <!-- Charts rows will be populated here -->
+                    </div>
+                    <button id="add-charts-row">Add Charts Row</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/dashboard_editor.js') }}"></script>
+</body>
+</html>
