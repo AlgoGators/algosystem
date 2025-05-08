@@ -1,6 +1,9 @@
 /* File: algosystem/backtesting/dashboard/web_app/static/js/dashboard_editor.js */
 
 $(document).ready(function() {
+
+    initCategoryToggles();
+    
     // Global variables
     let currentConfig = {};
     
@@ -569,3 +572,26 @@ $('#upload-status').html(`<span style="color: red;">Error: ${error}</span>`);
 });
 
 
+// Function to initialize category toggles
+function initCategoryToggles() {
+    $('.category-header').click(function() {
+        const toggle = $(this).find('.category-toggle');
+        const content = $(this).next('.category-content');
+        
+        // Toggle display
+        content.slideToggle(200);
+        
+        // Update toggle icon
+        if (toggle.hasClass('open')) {
+            toggle.removeClass('open');
+            toggle.text('▶');
+        } else {
+            toggle.addClass('open');
+            toggle.text('▼');
+        }
+    });
+    
+    // Open the first category in each section by default
+    $('.metric-categories .category-section:first-child .category-header').click();
+    $('.chart-categories .category-section:first-child .category-header').click();
+}

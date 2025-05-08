@@ -249,3 +249,26 @@ class Engine:
             
         from algosystem.backtesting.dashboard.dashboard_generator import generate_dashboard
         return generate_dashboard(self, output_dir, open_browser, config_path)
+    
+    def generate_standalone_dashboard(self, output_path=None):
+        """
+        Generate a standalone HTML dashboard that doesn't require a web server.
+        
+        Parameters:
+        -----------
+        output_path : str, optional
+            Path where the standalone HTML file will be saved
+            
+        Returns:
+        --------
+        output_path : str
+            Path to the generated standalone HTML file
+        """
+        if self.results is None:
+            logger.warning("No results available. Running backtest first.")
+            self.run()
+            
+        from algosystem.backtesting.dashboard.dashboard_generator import generate_standalone_dashboard
+        return generate_standalone_dashboard(self, output_path)
+
+
