@@ -316,3 +316,46 @@ button:disabled {
         flex-wrap: wrap;
     }
 }
+
+.category-section {
+    margin-bottom: 10px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+
+.category-header {
+    padding: 10px;
+    background-color: #f2f2f2;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.category-header:hover {
+    background-color: #e0e0e0;
+}
+
+.category-toggle {
+    font-size: 12px;
+    margin-right: 10px;
+    transition: transform 0.2s;
+}
+
+.category-toggle.open {
+    transform: rotate(90deg);
+}
+
+.category-title {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.category-content {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.metric-categories, .chart-categories {
+    margin-top: 10px;
+}
