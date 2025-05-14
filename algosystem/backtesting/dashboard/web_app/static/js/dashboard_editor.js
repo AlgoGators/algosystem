@@ -1,4 +1,3 @@
-/* File: algosystem/backtesting/dashboard/web_app/static/js/dashboard_editor.js */
 
 $(document).ready(function() {
 
@@ -83,7 +82,6 @@ $(document).ready(function() {
                 const chartsRow = $('<div class="charts-row has-items"></div>').attr('data-row', row);
                 
                 // Sort charts by column
-/* File: algosystem/backtesting/dashboard/web_app/static/js/dashboard_editor.js (continued) */
 
 charts.sort((a, b) => a.position.col - b.position.col).forEach(chart => {
     const chartItem = createDashboardChart(chart);
@@ -414,95 +412,164 @@ updateConfiguration();
 return newRow;
 }
 
-// Function to update the configuration based on the current layout
+// Improved version of the updateConfiguration and saveConfiguration functions
+// This can replace the existing functions in your dashboard_editor.js file
+
+// Function to properly update the configuration based on the current layout
 function updateConfiguration() {
-// Build a new configuration object
-const config = {
-metrics: [],
-charts: [],
-layout: {
-max_cols: 2,
-title: "AlgoSystem Trading Dashboard"
-}
-};
+    // Build a new configuration object with the required structure
+    const config = {
+        metrics: [],
+        charts: [],
+        layout: {
+            max_cols: 2,
+            title: "AlgoSystem Trading Dashboard"
+        }
+    };
 
-// Collect metrics
-$('.metrics-row').each(function() {
-const rowIndex = parseInt($(this).attr('data-row'));
+    // Collect metrics - ensure we handle all attributes properly
+    $('.metrics-row').each(function() {
+        const rowIndex = parseInt($(this).attr('data-row'));
 
-$(this).children('.dashboard-metric').each(function() {
-const colIndex = parseInt($(this).attr('data-col'));
+        $(this).children('.dashboard-metric').each(function() {
+            const colIndex = parseInt($(this).attr('data-col') || 0);
 
-const metric = {
-    id: $(this).attr('data-id'),
-    type: $(this).attr('data-type'),
-    title: $(this).attr('data-title'),
-    value_key: $(this).attr('data-value-key'),
-    position: {
-        row: rowIndex,
-        col: colIndex
-    }
-};
+            const metric = {
+                id: $(this).attr('data-id'),
+                type: $(this).attr('data-type'),
+                title: $(this).attr('data-title'),
+                value_key: $(this).attr('data-value-key'),
+                position: {
+                    row: rowIndex,
+                    col: colIndex
+                }
+            };
 
-config.metrics.push(metric);
-});
-});
+            // Only add well-formed metrics
+            if (metric.id && metric.type && metric.title && metric.value_key) {
+                config.metrics.push(metric);
+            }
+        });
+    });
 
-// Collect charts
-$('.charts-row').each(function() {
-const rowIndex = parseInt($(this).attr('data-row'));
+    // Collect charts - ensure we handle config properly
+    $('.charts-row').each(function() {
+        const rowIndex = parseInt($(this).attr('data-row'));
 
-$(this).children('.dashboard-chart').each(function() {
-const colIndex = parseInt($(this).attr('data-col'));
+        $(this).children('.dashboard-chart').each(function() {
+            const colIndex = parseInt($(this).attr('data-col') || 0);
 
-const chart = {
-    id: $(this).attr('data-id'),
-    type: $(this).attr('data-type'),
-    title: $(this).attr('data-title'),
-    data_key: $(this).attr('data-data-key'),
-    position: {
-        row: rowIndex,
-        col: colIndex
-    },
-    config: {}
-};
+            const chart = {
+                id: $(this).attr('data-id'),
+                type: $(this).attr('data-type'),
+                title: $(this).attr('data-title'),
+                data_key: $(this).attr('data-data-key'),
+                position: {
+                    row: rowIndex,
+                    col: colIndex
+                },
+                config: {}
+            };
 
-// Parse config if present
-const configStr = $(this).attr('data-config');
-if (configStr) {
-    try {
-        chart.config = JSON.parse(configStr);
-    } catch (e) {
-        console.error('Error parsing chart config:', e);
-    }
-}
+            // Parse config if present
+            const configStr = $(this).attr('data-config');
+            if (configStr) {
+                try {
+                    chart.config = JSON.parse(configStr);
+                } catch (e) {
+                    console.error('Error parsing chart config:', e);
+                    chart.config = {};
+                }
+            }
 
-config.charts.push(chart);
-});
-});
+            // Only add well-formed charts
+            if (chart.id && chart.type && chart.title && chart.data_key) {
+                config.charts.push(chart);
+            }
+        });
+    });
 
-// Update global configuration
-currentConfig = config;
+    // Log the configuration to help with debugging
+    console.log('Updated configuration:', config);
+    
+    // Make sure the global currentConfig is updated
+    currentConfig = config;
+    
+    return config;
 }
 
 // Function to save the configuration
 function saveConfiguration() {
-// Update the configuration first
-updateConfiguration();
+    // Update the configuration first
+    updateConfiguration();
 
-// Send to the server
-$.ajax({
-url: '/api/config',
-type: 'POST',
-data: JSON.stringify(currentConfig),
-contentType: 'application/json',
-success: function(response) {
-alert('Configuration saved successfully!');
-},
-error: function(xhr, status, error) {
-alert('Error saving configuration: ' + error);
-}
-});
+    // Make a deep copy of the configuration to avoid reference issues
+    const configToSave = JSON.parse(JSON.stringify(currentConfig));
+    
+    // Validate config before sending
+    if (!configToSave.metrics) configToSave.metrics = [];
+    if (!configToSave.charts) configToSave.charts = [];
+    if (!configToSave.layout) {
+        configToSave.layout = {
+            max_cols: 2,
+            title: "AlgoSystem Trading Dashboard"
+        };
+    }
+
+    // Display a saving indicator
+    const saveBtn = $('#save-config');
+    const originalText = saveBtn.text();
+    saveBtn.text('Saving...');
+    saveBtn.prop('disabled', true);
+
+    // Log what we're about to send
+    console.log('Saving configuration:', configToSave);
+    console.log('Configuration JSON string:', JSON.stringify(configToSave));
+
+    // Send to the server with proper content type and stringify
+    $.ajax({
+        url: '/api/config',
+        type: 'POST',
+        data: JSON.stringify(configToSave),
+        contentType: 'application/json',
+        dataType: 'json',
+        success: function(response) {
+            saveBtn.text(originalText);
+            saveBtn.prop('disabled', false);
+            
+            if (response.status === 'success') {
+                // Show success message
+                const successMessage = `Configuration saved successfully to ${response.path}!`;
+                alert(successMessage);
+                console.log(successMessage);
+                
+                // Verify the save by re-fetching the configuration
+                $.getJSON('/api/config', function(savedConfig) {
+                    console.log('Verification - Configuration on server contains:', savedConfig);
+                });
+            } else {
+                // Show error
+                const errorMessage = `Error saving configuration: ${response.message}`;
+                alert(errorMessage);
+                console.error(errorMessage);
+            }
+        },
+        error: function(xhr, status, error) {
+            saveBtn.text(originalText);
+            saveBtn.prop('disabled', false);
+            
+            // Show more detailed error
+            let errorMsg = 'Error saving configuration';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMsg += ': ' + xhr.responseJSON.message;
+            } else {
+                errorMsg += ': ' + error;
+            }
+            alert(errorMsg);
+            console.error('Save error:', xhr, status, error);
+            console.error('Response text:', xhr.responseText);
+        }
+    });
 }
 
 // Function to reset to the default configuration
@@ -569,8 +636,6 @@ $('#upload-status').html(`<span style="color: red;">Error: ${error}</span>`);
 }
 });
 }
-});
-
 
 // Function to initialize category toggles
 function initCategoryToggles() {
@@ -595,3 +660,5 @@ function initCategoryToggles() {
     $('.metric-categories .category-section:first-child .category-header').click();
     $('.chart-categories .category-section:first-child .category-header').click();
 }
+
+});
