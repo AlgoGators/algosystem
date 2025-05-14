@@ -1,6 +1,20 @@
+# local configuration
+# local env files
 venv
-algosystem.egg-info
-.pytest_cache
+.venv
+.env
+
+# poetry
+dist
+poetry.lock
+
+# testing
 .coverage
+htmlcov
+
+# cache
 __pycache__
+.pytest_cache
+
+# data
 /plots

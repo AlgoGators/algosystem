@@ -25,15 +25,22 @@ def cli():
 @click.option('--debug', is_flag=True, default=False,
               help='Run the server in debug mode')
 @click.option('--save-config', type=click.Path(), 
-              help='Path to save the edited configuration file (creates a new file)')
+              help='Path to save the edited configuration file (creates a new file if it does not exist)')
 def launch(config, data_dir, host, port, debug, save_config):
     """Launch the AlgoSystem Dashboard UI."""
     # Set environment variables for config and data if provided
     if config:
         os.environ['ALGO_DASHBOARD_CONFIG'] = os.path.abspath(config)
+        click.echo(f"Loading configuration from: {os.path.abspath(config)}")
     
     if save_config:
-        os.environ['ALGO_DASHBOARD_SAVE_CONFIG'] = os.path.abspath(save_config)
+        # Ensure it's an absolute path
+        save_config_path = os.path.abspath(save_config)
+        os.environ['ALGO_DASHBOARD_SAVE_CONFIG'] = save_config_path
+        click.echo(f"Configuration will be loaded from and saved to: {save_config_path}")
+        
+        # Create directory for save_config if it doesn't exist
+        os.makedirs(os.path.dirname(save_config_path), exist_ok=True)
     
     if data_dir:
         os.environ['ALGO_DASHBOARD_DATA_DIR'] = os.path.abspath(data_dir)
@@ -42,10 +49,6 @@ def launch(config, data_dir, host, port, debug, save_config):
     try:
         from algosystem.backtesting.dashboard.web_app.app import start_dashboard_editor
         click.echo(f"Starting AlgoSystem Dashboard Editor on http://{host}:{port}/")
-        
-        if save_config:
-            click.echo(f"Configuration will be saved to: {save_config}")
-        
         click.echo("Press Ctrl+C to stop the server.")
         start_dashboard_editor(host=host, port=port, debug=debug)
     except ImportError as e:
@@ -185,17 +188,17 @@ def create_config(output_path, based_on):
 
 @cli.command()
 @click.argument('input_file', type=click.Path(exists=True))
-@click.option('--output-file', '-o', type=click.Path(), default="./standalone_dashboard.html",
-              help='Path to save the standalone dashboard HTML file (default: ./standalone_dashboard.html)')
+@click.option('--output-file', '-o', type=click.Path(), default="./dashboard.html",
+              help='Path to save the dashboard HTML file (default: ./dashboard.html)')
 @click.option('--benchmark', '-b', type=click.Path(exists=True),
               help='Path to a CSV file with benchmark data')
 @click.option('--config', '-c', type=click.Path(exists=True),
               help='Path to a custom dashboard configuration file')
 @click.option('--use-default-config', is_flag=True, default=False,
               help='Use default configuration instead of custom config (overrides --config)')
-@click.option('--open-browser', is_flag=True, default=False,
+@click.option('--open-browser', is_flag=True, default=True,
               help='Open the dashboard in a browser after rendering')
-def standalone(input_file, output_file, benchmark, config, use_default_config, open_browser):
+def dashboard(input_file, output_file, benchmark, config, use_default_config, open_browser):
     """
     Create a standalone HTML dashboard from a CSV file that can be viewed without a web server.
     

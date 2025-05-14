@@ -81,8 +81,11 @@ class Engine:
         self.metrics_data = None
         self.plots = None
 
-        logger.info(f"Initialized backtest from {self.start_date.date()} to {self.end_date.date()}")
-        
+        if hasattr(self.start_date, 'date'):
+            logger.info(f"Initialized backtest from {self.start_date.date()} to {self.end_date.date()}")
+        else:
+            logger.info(f"Initialized backtest from {self.start_date} to {self.end_date}")
+
     def run(self):
         """
         Run the backtest simulation.

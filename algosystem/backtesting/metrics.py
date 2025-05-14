@@ -181,7 +181,12 @@ def calculate_metrics(strategy, benchmark=None):
     
     # Basic return statistics
     metrics['total_return'] = (strategy_returns + 1).prod() - 1
-    metrics['annualized_return'] = (1 + metrics['total_return']) ** (252 / len(strategy_returns)) - 1
+    
+    if len(strategy_returns) > 0:
+        metrics['annualized_return'] = (1 + metrics['total_return']) ** (252 / len(strategy_returns)) - 1
+    else:
+        metrics['annualized_return'] = 0.0
+
     metrics['annualized_volatility'] = strategy_returns.std() * np.sqrt(252)
     
     # Risk metrics
