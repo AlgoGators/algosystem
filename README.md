@@ -46,7 +46,7 @@ poetry install
 
 ### Requirements
 
-- Python 3.11+
+- Python 3.9+
 - pandas >= 2.0.0
 - numpy >= 1.24.0
 - Works on Windows, macOS, and Linux
