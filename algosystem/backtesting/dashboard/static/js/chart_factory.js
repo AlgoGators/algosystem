@@ -28,6 +28,15 @@ function createLineChart(containerId, data, options) {
         return;
     }
     
+    // Ensure all datasets have no point dots
+    if (data.datasets) {
+        data.datasets.forEach(dataset => {
+            dataset.pointRadius = 0;
+            dataset.pointHoverRadius = 2;
+            dataset.pointHitRadius = 10;
+        });
+    }
+    
     // Create chart instance
     chartInstances[containerId] = new Chart(canvas, {
         type: 'line',

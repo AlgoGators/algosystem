@@ -4,7 +4,7 @@ AVAILABLE_METRICS = [
     # Basic performance metrics
     {"id": "total_return", "type": "Percentage", "title": "Total Return", "value_key": "total_return", 
      "description": "Total return over the full period", "category": "performance"},
-    {"id": "annual_return", "type": "Percentage", "title": "Annualized Return", "value_key": "annualized_return", 
+    {"id": "annualized_return", "type": "Percentage", "title": "Annualized Return", "value_key": "annualized_return", 
      "description": "Annualized return of the strategy", "category": "performance"},
     {"id": "volatility", "type": "Percentage", "title": "Volatility", "value_key": "annualized_volatility", 
      "description": "Annualized volatility of the strategy", "category": "performance"},
@@ -66,9 +66,9 @@ AVAILABLE_METRICS = [
 
 AVAILABLE_CHARTS = [
     # Basic performance charts
-    {"id": "equity_curve", "type": "LineChart", "title": "Equity Curve", "data_key": "equity_curve", 
+    {"id": "equity_curve", "type": "LineChart", "title": "Equity Curve", "data_key": "equity", 
      "description": "Shows the growth of portfolio value over time", "category": "performance"},
-    {"id": "drawdown", "type": "LineChart", "title": "Drawdown Chart", "data_key": "drawdown_series", 
+    {"id": "drawdown", "type": "LineChart", "title": "Drawdown Chart", "data_key": "drawdown", 
      "description": "Shows the drawdown periods for the strategy", "category": "performance"},
     {"id": "daily_returns", "type": "LineChart", "title": "Daily Returns", "data_key": "daily_returns", 
      "description": "Shows daily returns of the strategy", "category": "performance"},
@@ -101,7 +101,7 @@ AVAILABLE_CHARTS = [
      
     # Benchmark comparison charts (conditionally available)
     {"id": "benchmark_comparison", "type": "LineChart", "title": "Strategy vs Benchmark", 
-     "data_key": "benchmark_comparison", 
+     "data_key": "benchmark_equity_curve", 
      "description": "Compares strategy and benchmark performance", "category": "benchmark"},
     {"id": "relative_performance", "type": "LineChart", "title": "Relative Performance", 
      "data_key": "relative_performance", 

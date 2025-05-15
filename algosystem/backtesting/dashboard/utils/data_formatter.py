@@ -198,14 +198,19 @@ def format_line_chart_data(series, chart_config):
         
         data.append(value_float)
     
-    # Create dataset
+    # Create dataset with no dots
     dataset = {
         'label': chart_config['title'],
         'data': data,
         'borderColor': '#2ecc71',  # Default color - can be overridden in future
         'backgroundColor': 'rgba(46, 204, 113, 0.1)',
         'fill': True,
-        'tension': 0.1
+        'tension': 0.1,
+        'pointRadius': 0,
+        'pointHoverRadius': 3,
+        'pointHitRadius': 10,
+        'pointBorderWidth': 0,
+        'pointHoverBorderWidth': 1
     }
     
     return {
