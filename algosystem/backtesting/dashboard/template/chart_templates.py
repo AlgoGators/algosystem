@@ -86,6 +86,15 @@ createLineChart(
                 }}
             }}
         }},
+        elements: {{
+            point: {{
+                radius: 0,
+                hoverRadius: 3,
+                hitRadius: 10,
+                borderWidth: 0,
+                hoverBorderWidth: 1
+            }}
+        }},
         scales: {{
             x: {{
                 type: 'time',
