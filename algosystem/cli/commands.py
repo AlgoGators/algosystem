@@ -26,10 +26,23 @@ def cli():
               help='Run the server in debug mode')
 @click.option('--save-config', type=click.Path(), 
               help='Path to save the edited configuration file (creates a new file if it does not exist)')
-def launch(config, data_dir, host, port, debug, save_config):
+@click.option('--default', is_flag=True, default=False,
+              help='Use the default configuration instead of user config')
+def launch(config, data_dir, host, port, debug, save_config, default):
     """Launch the AlgoSystem Dashboard UI."""
+    # Clear environment variables to start fresh
+    if 'ALGO_DASHBOARD_CONFIG' in os.environ:
+        del os.environ['ALGO_DASHBOARD_CONFIG']
+    if 'ALGO_DASHBOARD_SAVE_CONFIG' in os.environ:
+        del os.environ['ALGO_DASHBOARD_SAVE_CONFIG']
+
     # Set environment variables for config and data if provided
-    if config:
+    if default:
+        # Set environment variable to indicate we should use default config
+        from algosystem.backtesting.dashboard.utils.default_config import DEFAULT_CONFIG_PATH
+        os.environ['ALGO_DASHBOARD_CONFIG'] = DEFAULT_CONFIG_PATH
+        click.echo("Using default configuration")
+    elif config:
         os.environ['ALGO_DASHBOARD_CONFIG'] = os.path.abspath(config)
         click.echo(f"Loading configuration from: {os.path.abspath(config)}")
     
@@ -37,7 +50,7 @@ def launch(config, data_dir, host, port, debug, save_config):
         # Ensure it's an absolute path
         save_config_path = os.path.abspath(save_config)
         os.environ['ALGO_DASHBOARD_SAVE_CONFIG'] = save_config_path
-        click.echo(f"Configuration will be loaded from and saved to: {save_config_path}")
+        click.echo(f"Configuration will be saved to: {save_config_path}")
         
         # Create directory for save_config if it doesn't exist
         os.makedirs(os.path.dirname(save_config_path), exist_ok=True)
@@ -69,9 +82,9 @@ def launch(config, data_dir, host, port, debug, save_config):
               help='Path to a CSV file with benchmark data')
 @click.option('--open-browser', is_flag=True, default=False,
               help='Open the dashboard in a browser after rendering')
-@click.option('--use-default-config', is_flag=True, default=False,
+@click.option('--default', is_flag=True, default=False,
               help='Use default configuration instead of custom config (overrides --config)')
-def render(input_file, output_dir, config, benchmark, open_browser, use_default_config):
+def render(input_file, output_dir, config, benchmark, open_browser, default):
     """
     Render a dashboard from a CSV file with strategy data.
     
@@ -83,11 +96,11 @@ def render(input_file, output_dir, config, benchmark, open_browser, use_default_
     from algosystem.backtesting.dashboard.dashboard_generator import generate_dashboard
     
     # Create output directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
-    
+    os.makedirs(output_dir, exist_ok=True)        
+
     # Load the dashboard configuration
     config_path = None
-    if use_default_config:
+    if default:
         click.echo("Using default dashboard configuration")
         from algosystem.backtesting.dashboard.utils.default_config import DEFAULT_CONFIG_PATH
         config_path = DEFAULT_CONFIG_PATH
@@ -152,14 +165,22 @@ def render(input_file, output_dir, config, benchmark, open_browser, use_default_
 @click.argument('output_path', type=click.Path())
 @click.option('--based-on', '-b', type=click.Path(exists=True),
               help='Path to an existing configuration file to use as a base')
-def create_config(output_path, based_on):
+@click.option('--default', is_flag=True, default=False,
+              help='Create config based on default configuration')
+def create_config(output_path, based_on, default):
     """
     Create a dashboard configuration file.
     
     OUTPUT_PATH: Path where the configuration file will be saved
     """
     # Load the base configuration
-    if based_on:
+    if default or not based_on:
+        # Load the default configuration
+        from algosystem.backtesting.dashboard.utils.default_config import DEFAULT_CONFIG_PATH
+        click.echo("Creating configuration based on default template")
+        with open(DEFAULT_CONFIG_PATH, 'r') as f:
+            config = json.load(f)
+    else:
         try:
             click.echo(f"Creating configuration based on: {based_on}")
             with open(based_on, 'r') as f:
@@ -167,12 +188,6 @@ def create_config(output_path, based_on):
         except Exception as e:
             click.echo(f"Error loading base configuration: {str(e)}", err=True)
             sys.exit(1)
-    else:
-        # Load the default configuration
-        from algosystem.backtesting.dashboard.utils.default_config import DEFAULT_CONFIG_PATH
-        click.echo("Creating configuration based on default template")
-        with open(DEFAULT_CONFIG_PATH, 'r') as f:
-            config = json.load(f)
     
     # Ensure output directory exists
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
@@ -194,11 +209,11 @@ def create_config(output_path, based_on):
               help='Path to a CSV file with benchmark data')
 @click.option('--config', '-c', type=click.Path(exists=True),
               help='Path to a custom dashboard configuration file')
-@click.option('--use-default-config', is_flag=True, default=False,
+@click.option('--default', is_flag=True, default=False,
               help='Use default configuration instead of custom config (overrides --config)')
 @click.option('--open-browser', is_flag=True, default=True,
               help='Open the dashboard in a browser after rendering')
-def dashboard(input_file, output_file, benchmark, config, use_default_config, open_browser):
+def dashboard(input_file, output_file, benchmark, config, default, open_browser):
     """
     Create a standalone HTML dashboard from a CSV file that can be viewed without a web server.
     
@@ -208,9 +223,13 @@ def dashboard(input_file, output_file, benchmark, config, use_default_config, op
     from algosystem.backtesting.engine import Engine
     from algosystem.backtesting.dashboard.dashboard_generator import generate_standalone_dashboard
     
+    from algosystem.backtesting.dashboard.utils.default_config import DEFAULT_CONFIG_PATH
+    print(f"Loading default configuration from {DEFAULT_CONFIG_PATH}")
+    
+
     # Determine which configuration to use
     config_path = None
-    if use_default_config:
+    if default:
         click.echo("Using default dashboard configuration")
         from algosystem.backtesting.dashboard.utils.default_config import DEFAULT_CONFIG_PATH
         config_path = DEFAULT_CONFIG_PATH
@@ -324,7 +343,7 @@ def list_configs():
     config_dir = os.path.join(os.path.expanduser("~"), ".algosystem")
     
     if not os.path.exists(config_dir):
-        click.echo("No configuration directory found. Use 'create_config' to create your first configuration.")
+        click.echo("No configuration directory found. Use 'create-config' to create your first configuration.")
         return
     
     config_files = [f for f in os.listdir(config_dir) if f.endswith('.json')]
