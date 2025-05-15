@@ -218,17 +218,11 @@ def dashboard(input_file, output_file, benchmark, config, use_default_config, op
         click.echo(f"Using custom configuration from: {config}")
         config_path = config
     else:
-        # First, check if there's a config in the user's home directory
-        user_config = os.path.join(os.path.expanduser("~"), ".algosystem", "dashboard_config.json")
-        if os.path.exists(user_config):
-            click.echo(f"Using user configuration from: {user_config}")
-            config_path = user_config
-        else:
-            # Fall back to default
-            click.echo("No configuration specified, using default configuration")
-            from algosystem.backtesting.dashboard.utils.default_config import DEFAULT_CONFIG_PATH
-            config_path = DEFAULT_CONFIG_PATH
-    
+        # Fall back to default
+        click.echo("No configuration specified, using default configuration")
+        from algosystem.backtesting.dashboard.utils.default_config import DEFAULT_CONFIG_PATH
+        config_path = DEFAULT_CONFIG_PATH
+
     try:
         # Load the CSV data
         click.echo(f"Loading data from {input_file}...")
