@@ -99,100 +99,108 @@ addChartsRow();
 initSortable();
 }
 
-// Function to create a dashboard metric element
 function createDashboardMetric(metric) {
-const metricItem = $('<div class="dashboard-item dashboard-metric"></div>')
-.attr('data-id', metric.id)
-.attr('data-type', metric.type)
-.attr('data-title', metric.title)
-.attr('data-value-key', metric.value_key)
-.attr('data-col', metric.position.col);
+    const metricItem = $('<div class="dashboard-item dashboard-metric"></div>')
+        .attr('data-id', metric.id)
+        .attr('data-type', metric.type)
+        .attr('data-title', metric.title)
+        .attr('data-value-key', metric.value_key)
+        .attr('data-col', metric.position.col);
 
-metricItem.append(`<div class="item-title">${metric.title}</div>`);
-metricItem.append('<div class="item-remove">×</div>');
+    metricItem.append(`<div class="item-title">${metric.title}</div>`);
+    metricItem.append('<div class="item-remove">×</div>');
 
-metricItem.find('.item-remove').click(function() {
-$(this).parent().remove();
-updateRowStatus($(this).closest('.metrics-row'));
-updateConfiguration();
-});
+    metricItem.removeClass('component-item metric-item');
 
-return metricItem;
+    metricItem.find('.item-remove').click(function() {
+        $(this).parent().remove();
+        updateRowStatus($(this).closest('.metrics-row'));
+        updateConfiguration();
+    });
+
+    return metricItem;
 }
 
-// Function to create a dashboard chart element
 function createDashboardChart(chart) {
-const chartItem = $('<div class="dashboard-item dashboard-chart"></div>')
-.attr('data-id', chart.id)
-.attr('data-type', chart.type)
-.attr('data-title', chart.title)
-.attr('data-data-key', chart.data_key)
-.attr('data-col', chart.position.col);
+    const chartItem = $('<div class="dashboard-item dashboard-chart"></div>')
+        .attr('data-id', chart.id)
+        .attr('data-type', chart.type)
+        .attr('data-title', chart.title)
+        .attr('data-data-key', chart.data_key)
+        .attr('data-col', chart.position.col);
 
-chartItem.append(`<div class="item-title">${chart.title}</div>`);
-chartItem.append('<div class="item-remove">×</div>');
+    chartItem.append(`<div class="item-title">${chart.title}</div>`);
+    chartItem.append('<div class="item-remove">×</div>');
 
-if (chart.config) {
-chartItem.attr('data-config', JSON.stringify(chart.config));
-}
+    chartItem.removeClass('component-item chart-item');
 
-chartItem.find('.item-remove').click(function() {
-$(this).parent().remove();
-updateRowStatus($(this).closest('.charts-row'));
-updateConfiguration();
-});
+    if (chart.config) {
+        chartItem.attr('data-config', JSON.stringify(chart.config));
+    }
 
-return chartItem;
+    chartItem.find('.item-remove').click(function() {
+        $(this).parent().remove();
+        updateRowStatus($(this).closest('.charts-row'));
+        updateConfiguration();
+    });
+
+    return chartItem;
 }
 
 // Function to initialize drag and drop
 function initDragAndDrop() {
-// Make metric items draggable
-$('.metric-item').draggable({
-helper: 'clone',
-connectToSortable: '.metrics-row',
-revert: 'invalid'
-});
+    // Make metric items draggable
+    $('.metric-item').draggable({
+        helper: 'clone',
+        connectToSortable: '.metrics-row',
+        revert: 'invalid'
+    });
 
-// Make chart items draggable
-$('.chart-item').draggable({
-helper: 'clone',
-connectToSortable: '.charts-row',
-revert: 'invalid'
-});
+    // Make chart items draggable
+    $('.chart-item').draggable({
+        helper: 'clone',
+        connectToSortable: '.charts-row',
+        revert: 'invalid'
+    });
 
-// Initialize sortable for existing rows
-initSortable();
+    // Initialize sortable for existing rows
+    initSortable();
 }
 
 // Function to initialize sortable rows
 function initSortable() {
-// Make metrics rows sortable
-$('.metrics-row').sortable({
-tolerance: 'pointer',
-connectWith: '.metrics-row',
-placeholder: 'ui-sortable-placeholder',
-forcePlaceholderSize: true,
-receive: function(event, ui) {
-const row = $(this);
+    // Make metrics rows sortable
+    $('.metrics-row').sortable({
+    tolerance: 'pointer',
+    connectWith: '.metrics-row',
+    placeholder: 'ui-sortable-placeholder',
+    forcePlaceholderSize: true,
+    receive: function(event, ui) {
+        const row = $(this);
 
-// Check if it's a new item from the sidebar
-if (ui.item.hasClass('metric-item')) {
-    const metricData = {
-        id: ui.item.data('id'),
-        type: ui.item.data('type'),
-        title: ui.item.data('title'),
-        value_key: ui.item.data('value-key'),
-        position: {
-            row: parseInt(row.attr('data-row')),
-            col: row.children().length - 1
+        // Check if it's a new item from the sidebar
+        if (ui.item.hasClass('metric-item')) {
+            const metricData = {
+                id: ui.item.data('id'),
+                type: ui.item.data('type'),
+                title: ui.item.data('title'),
+                value_key: ui.item.data('value-key'),
+                position: {
+                    row: parseInt(row.attr('data-row')),
+                    col: row.children().length - 1
+                }
+            };
+            
+            // Create a new dashboard metric and replace the dragged item
+            const newMetric = createDashboardMetric(metricData);
+            
+            // FIX: Explicitly remove all sidebar classes and add dashboard classes
+            ui.item.removeClass('component-item metric-item ui-draggable ui-draggable-handle')
+                .addClass('dashboard-item dashboard-metric');
+            
+            // Replace with properly styled item
+            ui.item.replaceWith(newMetric);
         }
-    };
-    
-    // Create a new dashboard metric and replace the dragged item
-    const newMetric = createDashboardMetric(metricData);
-    ui.item.replaceWith(newMetric);
-}
 
 // Check if we have more than 4 metrics in a row
 if (row.children().length > 4) {
