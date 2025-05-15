@@ -49,7 +49,7 @@ def rolling_drawdown_duration(returns: pd.Series, window: int = 30) -> pd.Series
     # 2. Underwater flag: 1 if below peak, else 0
     underwater = (equity < peak).astype(int)
     
-    # 3. Convert that into a “current streak” series
+    # 3. Convert that into a "current streak" series
     #    Group by cumulative sum of zeros to reset count on non‑underwater days
     group_id  = (underwater == 0).cumsum()
     streak    = underwater.groupby(group_id).cumcount() + 1  # counts 1,2,3… on underwater days
@@ -114,19 +114,22 @@ def calculate_time_series_data(strategy, benchmark=None, window=30):
     time_series['equity_curve'] = equity_curve(strategy_returns)
     time_series['drawdown_series'] = drawdown_series(strategy_returns)
     
-    # Calculate rolling metrics
-    time_series['rolling_sharpe'] = rolling_sharpe(strategy_returns, window)
-    time_series['rolling_sortino'] = rolling_sortino(strategy_returns, window)
-    time_series['rolling_volatility'] = rolling_volatility(strategy_returns, window)
-    time_series['rolling_skew'] = rolling_skew(strategy_returns, window)
-    time_series['rolling_var'] = rolling_var(strategy_returns, window)
-    time_series['rolling_drawdown_duration'] = rolling_drawdown_duration(strategy_returns, window)
+    # Calculate rolling metrics with different windows
+    # Use a longer window (252 days = 1 year) for more stable rolling metrics
+    long_window = 252
+    
+    time_series['rolling_sharpe'] = rolling_sharpe(strategy_returns, long_window)
+    time_series['rolling_sortino'] = rolling_sortino(strategy_returns, long_window)
+    time_series['rolling_volatility'] = rolling_volatility(strategy_returns, long_window)
+    time_series['rolling_skew'] = rolling_skew(strategy_returns, long_window)
+    time_series['rolling_var'] = rolling_var(strategy_returns, long_window)
+    time_series['rolling_drawdown_duration'] = rolling_drawdown_duration(strategy_returns, long_window)
     
     # Calculate benchmark-dependent time series if benchmark is provided
     if benchmark_returns is not None:
         time_series['benchmark_equity_curve'] = equity_curve(benchmark_returns)
         time_series['benchmark_drawdown_series'] = drawdown_series(benchmark_returns)
-        time_series['benchmark_rolling_volatility'] = rolling_volatility(benchmark_returns, window)
+        time_series['benchmark_rolling_volatility'] = rolling_volatility(benchmark_returns, long_window)
         
         # Calculate relative performance
         time_series['relative_performance'] = time_series['equity_curve'] / time_series['benchmark_equity_curve']

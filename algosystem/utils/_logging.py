@@ -1,7 +1,6 @@
 import logging
 import os
 from datetime import datetime
-from algosystem.utils.config import load_config
 
 logging.getLogger(__name__)
 
@@ -21,14 +20,10 @@ def setup_logging(level=None, log_file=None):
     logger : logging.Logger
         Root logger
     """
-    config = load_config()
     
-    # Get configuration values if not provided
+    # Handle None level case
     if level is None:
-        level = config.get('logging.level', 'INFO')
-    
-    if log_file is None:
-        log_file = config.get('logging.file')
+        level = 'INFO'
     
     # Convert string level to logging level
     numeric_level = getattr(logging, level.upper(), logging.INFO)

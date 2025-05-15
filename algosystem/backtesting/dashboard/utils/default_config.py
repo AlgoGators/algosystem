@@ -5,8 +5,7 @@ import json
 
 # Path to the default configuration
 DEFAULT_CONFIG_PATH = os.path.abspath(os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "utils",
+    os.path.dirname(os.path.abspath(__file__)),
     "default_config.json"
 ))
 
@@ -23,10 +22,20 @@ def get_default_config():
                     "id": "annual_return",
                     "type": "Percentage",
                     "title": "Annualized Return",
-                    "value_key": "annual_return",
+                    "value_key": "annualized_return",
                     "position": {
                         "row": 0,
                         "col": 0
+                    }
+                },
+                {
+                    "id": "total_return",
+                    "type": "Percentage",
+                    "title": "Total Return",
+                    "value_key": "total_return",
+                    "position": {
+                        "row": 0,
+                        "col": 1
                     }
                 },
                 {
@@ -36,7 +45,7 @@ def get_default_config():
                     "value_key": "sharpe_ratio",
                     "position": {
                         "row": 0,
-                        "col": 1
+                        "col": 2
                     }
                 },
                 {
@@ -46,7 +55,7 @@ def get_default_config():
                     "value_key": "max_drawdown",
                     "position": {
                         "row": 0,
-                        "col": 2
+                        "col": 3
                     }
                 }
             ],

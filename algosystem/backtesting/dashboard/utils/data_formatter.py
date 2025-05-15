@@ -110,43 +110,62 @@ def prepare_charts_data(engine, config):
     # Initialize charts data
     charts_data = {}
     
-    # Get available data series
-    data_series = {
-        'equity': engine.results.get('equity', None),
-        'drawdown': engine.results.get('plots', {}).get('drawdown_series', None),
-        'rolling_sharpe': engine.results.get('plots', {}).get('rolling_sharpe', None),
-        'monthly_returns': engine.results.get('plots', {}).get('monthly_returns', None),
-        'benchmark': engine.results.get('plots', {}).get('benchmark_equity_curve', None)
-    }
+    # Get available data series from both results and plots
+    data_series = {}
+    
+    # Add main equity series
+    data_series['equity'] = engine.results.get('equity', None)
+    
+    # Add all plot data
+    plots_data = engine.results.get('plots', {})
+    
+    # Debug: Print available plot keys
+    print(f"Debug: Available plot keys: {list(plots_data.keys())}")
+    
+    # Map the plot data to expected data keys
+    data_series.update({
+        'drawdown': plots_data.get('drawdown_series', None),
+        'rolling_sharpe': plots_data.get('rolling_sharpe', None),
+        'rolling_sortino': plots_data.get('rolling_sortino', None),
+        'rolling_volatility': plots_data.get('rolling_volatility', None),
+        'rolling_var': plots_data.get('rolling_var', None),
+        'monthly_returns': plots_data.get('monthly_returns', None),
+        'benchmark_comparison': plots_data.get('benchmark_equity_curve', None),
+        'benchmark_equity_curve': plots_data.get('benchmark_equity_curve', None),
+        'relative_performance': plots_data.get('relative_performance', None),
+    })
     
     # Prepare each chart's data based on configuration
     for chart_config in config['charts']:
         chart_id = chart_config['id']
         data_key = chart_config['data_key']
         
-        # Skip if data is not available and can't be calculated
-        if data_key not in data_series or data_series[data_key] is None:
-            if data_key == 'drawdown' and data_series['equity'] is not None:
-                # Calculate drawdown from equity
-                data_series['drawdown'] = calculate_drawdown(data_series['equity'])
-            elif data_key == 'rolling_sharpe' and data_series['equity'] is not None:
-                # Calculate rolling sharpe from equity
-                window_size = chart_config.get('config', {}).get('window_size', 252)
-                data_series['rolling_sharpe'] = calculate_rolling_sharpe(data_series['equity'], window_size)
-            elif data_key == 'monthly_returns' and data_series['equity'] is not None:
-                # Calculate monthly returns from equity
-                data_series['monthly_returns'] = calculate_monthly_returns(data_series['equity'])
-            else:
-                # Skip this chart
-                continue
+        print(f"Debug: Processing chart '{chart_id}' with data_key '{data_key}'")
+        
+        # Get the data series
+        series_data = data_series.get(data_key, None)
+        
+        # Check if data exists and is not empty
+        if series_data is None:
+            print(f"Debug: No data found for '{data_key}', skipping chart '{chart_id}'")
+            continue
+            
+        # Check if it's a pandas Series and if it's empty
+        if isinstance(series_data, pd.Series) and series_data.empty:
+            print(f"Debug: Data for '{data_key}' is empty, skipping chart '{chart_id}'")
+            continue
         
         # Format data based on chart type
-        if chart_config['type'] == 'LineChart':
-            chart_data = format_line_chart_data(data_series[data_key], chart_config)
-        elif chart_config['type'] == 'HeatmapTable':
-            chart_data = format_heatmap_table_data(data_series[data_key], chart_config)
-        else:
-            # Skip unsupported chart types
+        try:
+            if chart_config['type'] == 'LineChart':
+                chart_data = format_line_chart_data(series_data, chart_config)
+            elif chart_config['type'] == 'HeatmapTable':
+                chart_data = format_heatmap_table_data(series_data, chart_config)
+            else:
+                print(f"Debug: Unsupported chart type '{chart_config['type']}' for chart '{chart_id}'")
+                continue
+        except Exception as e:
+            print(f"Debug: Error formatting data for chart '{chart_id}': {str(e)}")
             continue
         
         # Add to charts data
@@ -158,6 +177,8 @@ def prepare_charts_data(engine, config):
             'config': chart_config['config'],
             'position': chart_config['position']
         }
+        
+        print(f"Debug: Successfully added chart '{chart_id}'")
     
     return charts_data
 
@@ -178,7 +199,11 @@ def format_line_chart_data(series, chart_config):
     dict
         Formatted line chart data
     """
-    if series is None or (hasattr(series, 'empty') and series.empty):
+    # Check if series is None or empty
+    if series is None:
+        return {'labels': [], 'datasets': []}
+    
+    if isinstance(series, pd.Series) and series.empty:
         return {'labels': [], 'datasets': []}
     
     # Format labels (dates)
@@ -235,7 +260,11 @@ def format_heatmap_table_data(series, chart_config):
     dict
         Formatted heatmap table data
     """
-    if series is None or (hasattr(series, 'empty') and series.empty):
+    # Check if series is None or empty
+    if series is None:
+        return {'years': [], 'months': [], 'data': {}}
+    
+    if isinstance(series, pd.Series) and series.empty:
         return {'years': [], 'months': [], 'data': {}}
     
     # Extract data
