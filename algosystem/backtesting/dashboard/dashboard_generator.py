@@ -8,10 +8,11 @@ from .template.base_template import generate_html
 from .utils.data_formatter import prepare_dashboard_data
 from .utils.config_parser import validate_config
 
+
 def generate_dashboard(engine, output_dir=None, open_browser=True, config_path=None):
     """
     Generate an HTML dashboard for the backtest results based on graph_config.json
-    
+
     Parameters:
     -----------
     engine : Engine
@@ -22,7 +23,7 @@ def generate_dashboard(engine, output_dir=None, open_browser=True, config_path=N
         Whether to automatically open the dashboard in browser. Defaults to True
     config_path : str, optional
         Path to the graph configuration file. If None, will use the default config
-        
+
     Returns:
     --------
     dashboard_path : str
@@ -32,94 +33,98 @@ def generate_dashboard(engine, output_dir=None, open_browser=True, config_path=N
     if engine.results is None:
         # Try to run the backtest if not already run
         engine.run()
-        
+
         if engine.results is None:
             raise ValueError("No backtest results available. Run the backtest first.")
-    
+
     # Set default output directory
     if output_dir is None:
         output_dir = os.path.join(os.getcwd(), "dashboard")
-    
+
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
-    
+
     # Load graph configuration
     if config_path is None:
         # Check for a user config first
         user_config = os.path.join(os.path.expanduser("~"), ".algosystem", "dashboard_config.json")
         if os.path.exists(user_config):
             print(f"Using user configuration from: {user_config}")
-            with open(user_config, 'r') as f:
+            with open(user_config, "r") as f:
                 config = json.load(f)
         else:
             # Use default configuration
             from .utils.default_config import get_default_config
+
             config = get_default_config()
     else:
         # Use the specified configuration
         if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
+            with open(config_path, "r") as f:
                 config = json.load(f)
         else:
             # If the specified config doesn't exist, use default and create the file
-            print(f"Warning: Configuration file {config_path} not found. Creating it with default configuration.")
+            print(
+                f"Warning: Configuration file {config_path} not found. Creating it with default configuration."
+            )
             from .utils.default_config import get_default_config
+
             config = get_default_config()
-            
+
             # Ensure directory exists for the config path
             os.makedirs(os.path.dirname(os.path.abspath(config_path)), exist_ok=True)
-            
+
             # Save the default config to the specified location
-            with open(config_path, 'w') as f:
+            with open(config_path, "w") as f:
                 json.dump(config, f, indent=4)
-    
+
     # Validate configuration
     validate_config(config)
-    
+
     # Prepare data for the dashboard
     dashboard_data = prepare_dashboard_data(engine, config)
-    
+
     # Generate HTML content
     html_content = generate_html(engine, config, dashboard_data)
-    
+
     # Write HTML file
-    dashboard_path = os.path.join(output_dir, 'dashboard.html')
-    with open(dashboard_path, 'w') as f:
+    dashboard_path = os.path.join(output_dir, "dashboard.html")
+    with open(dashboard_path, "w") as f:
         f.write(html_content)
-    
+
     # Write data file
-    data_path = os.path.join(output_dir, 'dashboard_data.json')
-    with open(data_path, 'w') as f:
+    data_path = os.path.join(output_dir, "dashboard_data.json")
+    with open(data_path, "w") as f:
         json.dump(dashboard_data, f, indent=2)
-    
+
     # Create directories for static files
-    js_dir = os.path.join(output_dir, 'js')
+    js_dir = os.path.join(output_dir, "js")
     os.makedirs(js_dir, exist_ok=True)
-    
-    css_dir = os.path.join(output_dir, 'css')
+
+    css_dir = os.path.join(output_dir, "css")
     os.makedirs(css_dir, exist_ok=True)
-    
+
     # Copy static files
-    static_dir = os.path.join(os.path.dirname(__file__), 'static')
-    
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+
     # Copy JS files
-    js_files = ['dashboard.js', 'chart_factory.js', 'metric_factory.js']
+    js_files = ["dashboard.js", "chart_factory.js", "metric_factory.js"]
     for js_file in js_files:
-        src_path = os.path.join(static_dir, 'js', js_file)
+        src_path = os.path.join(static_dir, "js", js_file)
         if os.path.exists(src_path):
             shutil.copy(src_path, js_dir)
         else:
             # Create minimum required JS files if they don't exist
             create_default_js_files(js_dir, js_file)
-    
+
     # Copy CSS file
-    css_path = os.path.join(static_dir, 'css', 'dashboard.css')
+    css_path = os.path.join(static_dir, "css", "dashboard.css")
     if os.path.exists(css_path):
         shutil.copy(css_path, css_dir)
     else:
         # Create default CSS file if it doesn't exist
         create_default_css_file(css_dir)
-    
+
     # Add configuration source information to the HTML file
     config_info = ""
     if config_path:
@@ -130,25 +135,28 @@ def generate_dashboard(engine, output_dir=None, open_browser=True, config_path=N
             config_info = f"<p>Configuration source: User configuration</p>"
         else:
             config_info = "<p>Configuration source: Default configuration</p>"
-    
+
     # Insert config info before the closing body tag
-    with open(dashboard_path, 'r') as f:
+    with open(dashboard_path, "r") as f:
         html_content = f.read()
-    
-    html_content = html_content.replace('</body>', f'<div class="config-info">{config_info}</div></body>')
-    
-    with open(dashboard_path, 'w') as f:
+
+    html_content = html_content.replace(
+        "</body>", f'<div class="config-info">{config_info}</div></body>'
+    )
+
+    with open(dashboard_path, "w") as f:
         f.write(html_content)
-    
+
     # Open in browser if requested
     if open_browser:
-        webbrowser.open('file://' + os.path.abspath(dashboard_path))
-    
+        webbrowser.open("file://" + os.path.abspath(dashboard_path))
+
     return dashboard_path
+
 
 def create_default_js_files(js_dir, file_name):
     """Create default JS files with minimal functionality if originals don't exist."""
-    if file_name == 'dashboard.js':
+    if file_name == "dashboard.js":
         content = """
 /**
  * Dashboard - Main dashboard functionality
@@ -393,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initDashboard();
 });
         """
-    elif file_name == 'chart_factory.js':
+    elif file_name == "chart_factory.js":
         content = """
 /**
  * Chart Factory - Functions for creating various chart types
@@ -537,7 +545,7 @@ function formatAsPercentage(value) {
     return `${(value * 100).toFixed(1)}%`;
 }
         """
-    elif file_name == 'metric_factory.js':
+    elif file_name == "metric_factory.js":
         content = """
 /**
  * Metric Factory - Functions for updating various metric types
@@ -618,9 +626,10 @@ function formatAsCurrency(value) {
     return `${value.toFixed(2)}`;
 }
         """
-    
-    with open(os.path.join(js_dir, file_name), 'w') as f:
+
+    with open(os.path.join(js_dir, file_name), "w") as f:
         f.write(content)
+
 
 def create_default_css_file(css_dir):
     """Create a default CSS file with basic styling if original doesn't exist."""
@@ -847,16 +856,17 @@ body {
         height: 250px;
     }
 }"""
-    
-    with open(os.path.join(css_dir, 'dashboard.css'), 'w') as f:
+
+    with open(os.path.join(css_dir, "dashboard.css"), "w") as f:
         f.write(content)
+
 
 def generate_standalone_dashboard(engine, output_path=None, config_path=None):
     """
     Generate a completely standalone HTML dashboard with no external dependencies.
     The entire dashboard including all data, styles, and JavaScript is embedded
     in a single HTML file that can be viewed without a web server.
-    
+
     Parameters:
     -----------
     engine : Engine
@@ -866,7 +876,7 @@ def generate_standalone_dashboard(engine, output_path=None, config_path=None):
         Defaults to './standalone_dashboard.html'
     config_path : str, optional
         Path to a custom dashboard configuration file
-        
+
     Returns:
     --------
     output_path : str
@@ -875,31 +885,31 @@ def generate_standalone_dashboard(engine, output_path=None, config_path=None):
     import os
     import json
     from datetime import datetime
-    
+
     # Check if backtest results are available
     if engine.results is None:
         # Try to run the backtest if not already run
         engine.run()
-        
+
         if engine.results is None:
             raise ValueError("No backtest results available. Run the backtest first.")
-    
+
     # Set default output path if not provided
     if output_path is None:
         output_path = os.path.join(os.getcwd(), "standalone_dashboard.html")
-    
+
     # Ensure the output directory exists
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-    
+
     # Determine which configuration to use
     config = None
     config_source = "Default configuration"
-    
+
     if config_path is not None:
         # User specified a configuration file
         if os.path.exists(config_path):
             try:
-                with open(config_path, 'r') as f:
+                with open(config_path, "r") as f:
                     config = json.load(f)
                 config_source = f"Custom configuration from {os.path.basename(config_path)}"
                 print(f"Using configuration from: {config_path}")
@@ -910,13 +920,15 @@ def generate_standalone_dashboard(engine, output_path=None, config_path=None):
         else:
             print(f"Warning: Configuration file {config_path} not found.")
             print("Using default configuration instead.")
-    
+
     if config is None:
         # Check for user configuration in the home directory
-        user_config_path = os.path.join(os.path.expanduser("~"), ".algosystem", "dashboard_config.json")
+        user_config_path = os.path.join(
+            os.path.expanduser("~"), ".algosystem", "dashboard_config.json"
+        )
         if os.path.exists(user_config_path):
             try:
-                with open(user_config_path, 'r') as f:
+                with open(user_config_path, "r") as f:
                     config = json.load(f)
                 config_source = f"User configuration from {os.path.basename(user_config_path)}"
                 print(f"Using user configuration from: {user_config_path}")
@@ -924,21 +936,23 @@ def generate_standalone_dashboard(engine, output_path=None, config_path=None):
                 print(f"Warning: Failed to load user configuration: {str(e)}")
                 print("Using default configuration instead.")
                 config = None
-    
+
     if config is None:
         # Use default configuration
         from .utils.default_config import get_default_config
+
         config = get_default_config()
         print("Using default dashboard configuration")
-    
+
     # Prepare dashboard data
     from .utils.data_formatter import prepare_dashboard_data
+
     dashboard_data = prepare_dashboard_data(engine, config)
-    
+
     # Include data generation timestamp
     generation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    dashboard_data['metadata']['generation_time'] = generation_time
-    
+    dashboard_data["metadata"]["generation_time"] = generation_time
+
     # Create the standalone HTML content with embedded data, CSS, and JavaScript
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -1542,13 +1556,10 @@ def generate_standalone_dashboard(engine, output_path=None, config_path=None):
 </body>
 </html>
 """
-    
+
     # Write to output file
-    with open(output_path, 'w', encoding='utf-8') as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(html)
-    
+
     print(f"Standalone dashboard generated successfully at: {output_path}")
     return output_path
-
-
-

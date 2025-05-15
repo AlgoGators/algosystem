@@ -7,7 +7,6 @@ venv
 # poetry
 dist
 poetry.lock
-pyproject.toml
 
 # testing
 .coverage
@@ -24,3 +23,5 @@ dashboard.html
 # dev files
 nd.json 
 debug_config.json
+benchmark.csv
+strategy.csv
