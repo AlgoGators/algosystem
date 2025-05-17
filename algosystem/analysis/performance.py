@@ -79,7 +79,7 @@ def calculate_rolling_stats(returns, window=252):
     rolling_max_dd = pd.Series(index=returns.index, dtype=float)
 
     for i in range(window, len(cum_returns)):
-        window_cum_returns = cum_returns.iloc[i - window:i + 1]
+        window_cum_returns = cum_returns.iloc[i - window : i + 1]
         window_peak = window_cum_returns.cummax()
         window_dd = (window_cum_returns / window_peak) - 1
         rolling_max_dd.iloc[i] = window_dd.min()
