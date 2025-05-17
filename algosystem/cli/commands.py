@@ -1,12 +1,27 @@
+"""
+Enhanced CLI with benchmark support for AlgoSystem.
+This module extends the existing CLI to support benchmark aliases and automatic data downloading.
+"""
+
 import os
 import sys
 import click
 import json
 import pandas as pd
-from pathlib import Path
+import numpy as np
+import traceback
+from datetime import datetime, timedelta
 
 # Add parent directory to path to allow direct script execution
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Import benchmark functionality
+from algosystem.data.benchmark import (
+    fetch_benchmark_data,
+    get_benchmark_list,
+    get_benchmark_info,
+    DEFAULT_BENCHMARK,
+)
 
 # Define user config directory and file
 USER_CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".algosystem")
@@ -233,7 +248,16 @@ def launch(config, data_dir, host, port, debug, save_config, default):
     help="Path to a custom dashboard configuration file",
 )
 @click.option(
-    "--benchmark", "-b", type=click.Path(exists=True), help="Path to a CSV file with benchmark data"
+    "--benchmark",
+    "-b",
+    help="Benchmark to use. Can be a file path or an alias (e.g., 'sp500', 'nasdaq')",
+)
+@click.option(
+    "--start-date",
+    help="Start date for the backtest (YYYY-MM-DD). Default: first date in input data",
+)
+@click.option(
+    "--end-date", help="End date for the backtest (YYYY-MM-DD). Default: last date in input data"
 )
 @click.option(
     "--open-browser",
@@ -247,7 +271,23 @@ def launch(config, data_dir, host, port, debug, save_config, default):
     default=False,
     help="Use library default configuration (overrides --config)",
 )
-def render(input_file, output_dir, config, benchmark, open_browser, default):
+@click.option(
+    "--force-refresh",
+    is_flag=True,
+    default=False,
+    help="Force refresh of benchmark data even if cached data exists",
+)
+def render(
+    input_file,
+    output_dir,
+    config,
+    benchmark,
+    start_date,
+    end_date,
+    open_browser,
+    default,
+    force_refresh,
+):
     """
     Render a dashboard from a CSV file with strategy data.
 
@@ -282,14 +322,66 @@ def render(input_file, output_dir, config, benchmark, open_browser, default):
         data = pd.read_csv(input_file, index_col=0, parse_dates=True)
         click.echo(f"Loaded data with shape: {data.shape}")
 
+        # Handle date range filtering
+        if start_date:
+            start_date = pd.to_datetime(start_date)
+            data = data[data.index >= start_date]
+
+        if end_date:
+            end_date = pd.to_datetime(end_date)
+            data = data[data.index <= end_date]
+
+        if start_date or end_date:
+            click.echo(f"Filtered data to shape: {data.shape}")
+
         # Load benchmark data if provided
         benchmark_data = None
         if benchmark:
-            click.echo(f"Loading benchmark data from {benchmark}...")
-            benchmark_data = pd.read_csv(benchmark, index_col=0, parse_dates=True)
-            if isinstance(benchmark_data, pd.DataFrame) and benchmark_data.shape[1] > 1:
-                benchmark_data = benchmark_data.iloc[:, 0]  # Use first column
-            click.echo(f"Loaded benchmark data with {len(benchmark_data)} rows")
+            # Check if it's a file path
+            if os.path.exists(benchmark):
+                click.echo(f"Loading benchmark data from file: {benchmark}...")
+                benchmark_data = pd.read_csv(benchmark, index_col=0, parse_dates=True)
+                if isinstance(benchmark_data, pd.DataFrame) and benchmark_data.shape[1] > 1:
+                    benchmark_data = benchmark_data.iloc[:, 0]  # Use first column
+                click.echo(f"Loaded benchmark data with {len(benchmark_data)} rows")
+            else:
+                # Try to load as an alias
+                click.echo(f"Loading benchmark data for alias: {benchmark}...")
+                try:
+                    benchmark_data = fetch_benchmark_data(
+                        benchmark,
+                        start_date=data.index[0] if not start_date else start_date,
+                        end_date=data.index[-1] if not end_date else end_date,
+                        force_refresh=force_refresh,
+                    )
+                    click.echo(f"Loaded benchmark data with {len(benchmark_data)} rows")
+                except ImportError:
+                    click.echo(
+                        "Warning: Could not import benchmark module. Make sure the 'yfinance' package is installed."
+                    )
+                    click.echo("Continuing without benchmark data...")
+                except Exception as e:
+                    click.echo(f"Warning: Error fetching benchmark data: {str(e)}")
+                    click.echo("Continuing without benchmark data...")
+        elif not benchmark:
+            # If no benchmark specified, use S&P 500 by default
+            try:
+                click.echo(f"Loading default benchmark (S&P 500)...")
+                benchmark_data = fetch_benchmark_data(
+                    DEFAULT_BENCHMARK,
+                    start_date=data.index[0] if not start_date else start_date,
+                    end_date=data.index[-1] if not end_date else end_date,
+                    force_refresh=force_refresh,
+                )
+                click.echo(f"Loaded S&P 500 benchmark data with {len(benchmark_data)} rows")
+            except ImportError:
+                click.echo(
+                    "Warning: Could not import benchmark module. Make sure the 'yfinance' package is installed."
+                )
+                click.echo("Continuing without benchmark data...")
+            except Exception as e:
+                click.echo(f"Warning: Error fetching S&P 500 benchmark data: {str(e)}")
+                click.echo("Continuing without benchmark data...")
 
         # Create a backtest engine to process the data
         click.echo("Running backtest...")
@@ -300,7 +392,9 @@ def render(input_file, output_dir, config, benchmark, open_browser, default):
             price_data = data
 
         # Initialize and run the engine
-        engine = Engine(data=price_data, benchmark=benchmark_data)
+        engine = Engine(
+            data=price_data, benchmark=benchmark_data, start_date=start_date, end_date=end_date
+        )
         results = engine.run()
         click.echo("Backtest completed successfully")
 
@@ -319,6 +413,8 @@ def render(input_file, output_dir, config, benchmark, open_browser, default):
 
     except Exception as e:
         click.echo(f"Error: {str(e)}", err=True)
+        # Print traceback for debugging
+        click.echo(traceback.format_exc())
         sys.exit(1)
 
 
@@ -403,7 +499,16 @@ def create_config(output_path, based_on, default, user):
     help="Path to save the dashboard HTML file (default: ./dashboard.html)",
 )
 @click.option(
-    "--benchmark", "-b", type=click.Path(exists=True), help="Path to a CSV file with benchmark data"
+    "--benchmark",
+    "-b",
+    help="Benchmark to use. Can be a file path or an alias (e.g., 'sp500', 'nasdaq')",
+)
+@click.option(
+    "--start-date",
+    help="Start date for the backtest (YYYY-MM-DD). Default: first date in input data",
+)
+@click.option(
+    "--end-date", help="End date for the backtest (YYYY-MM-DD). Default: last date in input data"
 )
 @click.option(
     "--config",
@@ -423,7 +528,23 @@ def create_config(output_path, based_on, default, user):
     default=True,
     help="Open the dashboard in a browser after rendering",
 )
-def dashboard(input_file, output_file, benchmark, config, default, open_browser):
+@click.option(
+    "--force-refresh",
+    is_flag=True,
+    default=False,
+    help="Force refresh of benchmark data even if cached data exists",
+)
+def dashboard(
+    input_file,
+    output_file,
+    benchmark,
+    start_date,
+    end_date,
+    config,
+    default,
+    open_browser,
+    force_refresh,
+):
     """
     Create a standalone HTML dashboard from a CSV file that can be viewed without a web server.
 
@@ -454,14 +575,66 @@ def dashboard(input_file, output_file, benchmark, config, default, open_browser)
         data = pd.read_csv(input_file, index_col=0, parse_dates=True)
         click.echo(f"Loaded data with shape: {data.shape}")
 
+        # Handle date range filtering
+        if start_date:
+            start_date = pd.to_datetime(start_date)
+            data = data[data.index >= start_date]
+
+        if end_date:
+            end_date = pd.to_datetime(end_date)
+            data = data[data.index <= end_date]
+
+        if start_date or end_date:
+            click.echo(f"Filtered data to shape: {data.shape}")
+
         # Load benchmark data if provided
         benchmark_data = None
         if benchmark:
-            click.echo(f"Loading benchmark data from {benchmark}...")
-            benchmark_data = pd.read_csv(benchmark, index_col=0, parse_dates=True)
-            if isinstance(benchmark_data, pd.DataFrame) and benchmark_data.shape[1] > 1:
-                benchmark_data = benchmark_data.iloc[:, 0]  # Use first column
-            click.echo(f"Loaded benchmark data with {len(benchmark_data)} rows")
+            # Check if it's a file path
+            if os.path.exists(benchmark):
+                click.echo(f"Loading benchmark data from file: {benchmark}...")
+                benchmark_data = pd.read_csv(benchmark, index_col=0, parse_dates=True)
+                if isinstance(benchmark_data, pd.DataFrame) and benchmark_data.shape[1] > 1:
+                    benchmark_data = benchmark_data.iloc[:, 0]  # Use first column
+                click.echo(f"Loaded benchmark data with {len(benchmark_data)} rows")
+            else:
+                # Try to load as an alias
+                click.echo(f"Loading benchmark data for alias: {benchmark}...")
+                try:
+                    benchmark_data = fetch_benchmark_data(
+                        benchmark,
+                        start_date=data.index[0] if not start_date else start_date,
+                        end_date=data.index[-1] if not end_date else end_date,
+                        force_refresh=force_refresh,
+                    )
+                    click.echo(f"Loaded benchmark data with {len(benchmark_data)} rows")
+                except ImportError:
+                    click.echo(
+                        "Warning: Could not import benchmark module. Make sure the 'yfinance' package is installed."
+                    )
+                    click.echo("Continuing without benchmark data...")
+                except Exception as e:
+                    click.echo(f"Warning: Error fetching benchmark data: {str(e)}")
+                    click.echo("Continuing without benchmark data...")
+        elif not benchmark:
+            # If no benchmark specified, use S&P 500 by default
+            try:
+                click.echo(f"Loading default benchmark (S&P 500)...")
+                benchmark_data = fetch_benchmark_data(
+                    DEFAULT_BENCHMARK,
+                    start_date=data.index[0] if not start_date else start_date,
+                    end_date=data.index[-1] if not end_date else end_date,
+                    force_refresh=force_refresh,
+                )
+                click.echo(f"Loaded S&P 500 benchmark data with {len(benchmark_data)} rows")
+            except ImportError:
+                click.echo(
+                    "Warning: Could not import benchmark module. Make sure the 'yfinance' package is installed."
+                )
+                click.echo("Continuing without benchmark data...")
+            except Exception as e:
+                click.echo(f"Warning: Error fetching S&P 500 benchmark data: {str(e)}")
+                click.echo("Continuing without benchmark data...")
 
         # Create a backtest engine to process the data
         click.echo("Running backtest...")
@@ -472,7 +645,9 @@ def dashboard(input_file, output_file, benchmark, config, default, open_browser)
             price_data = data
 
         # Initialize and run the engine
-        engine = Engine(data=price_data, benchmark=benchmark_data)
+        engine = Engine(
+            data=price_data, benchmark=benchmark_data, start_date=start_date, end_date=end_date
+        )
         results = engine.run()
         click.echo("Backtest completed successfully")
 
@@ -493,6 +668,8 @@ def dashboard(input_file, output_file, benchmark, config, default, open_browser)
 
     except Exception as e:
         click.echo(f"Error: {str(e)}", err=True)
+        # Print traceback for debugging
+        click.echo(traceback.format_exc())
         sys.exit(1)
 
 
@@ -646,6 +823,359 @@ def reset_user_config(backup, no_backup):
         json.dump(default_config, f, indent=4)
 
     click.echo(f"User configuration reset to library defaults: {USER_CONFIG_FILE}")
+
+
+# Add a new command to list and manage benchmarks
+@cli.command()
+@click.option(
+    "--fetch-all", is_flag=True, default=False, help="Fetch or update all available benchmarks"
+)
+@click.option(
+    "--force-refresh",
+    is_flag=True,
+    default=False,
+    help="Force refresh of benchmark data even if cached data exists",
+)
+@click.option(
+    "--info",
+    is_flag=True,
+    default=False,
+    help="Show detailed information about all available benchmarks",
+)
+@click.option(
+    "--start-date", help="Start date for benchmark data (YYYY-MM-DD). Default: 5 years ago"
+)
+@click.option("--end-date", help="End date for benchmark data (YYYY-MM-DD). Default: today")
+@click.argument("benchmark", required=False)
+def benchmarks(fetch_all, force_refresh, info, start_date, end_date, benchmark):
+    """
+    List, fetch, and manage benchmark data.
+
+    Specify a benchmark alias to fetch or update data for that specific benchmark.
+    Use --fetch-all to fetch or update all available benchmarks.
+    """
+    try:
+        # Parse dates if provided
+        if start_date:
+            start_date = pd.to_datetime(start_date)
+        if end_date:
+            end_date = pd.to_datetime(end_date)
+
+        # Show info about all benchmarks
+        if info:
+            try:
+                benchmark_info = get_benchmark_info()
+
+                # Group by category
+                categories = benchmark_info.groupby("Category")
+
+                click.echo("Available benchmarks by category:\n")
+                for category_name, group in categories:
+                    click.echo(f"=== {category_name} ===")
+                    for _, row in group.iterrows():
+                        click.echo(f"  • {row['Alias']}: {row['Description']}")
+                    click.echo("")
+
+                click.echo(f"Total benchmarks available: {len(benchmark_info)}")
+                click.echo("Use 'algosystem benchmarks <alias>' to fetch a specific benchmark.")
+                click.echo("Use 'algosystem benchmarks --fetch-all' to fetch all benchmarks.")
+                return
+            except ImportError:
+                click.echo(
+                    "Error: Benchmark module not available. Make sure yfinance is installed:"
+                )
+                click.echo("  pip install yfinance")
+                sys.exit(1)
+
+        # List available benchmarks if no specific action requested
+        if not benchmark and not fetch_all:
+            try:
+                benchmark_list = get_benchmark_list()
+                click.echo("Available benchmark aliases:")
+
+                # Display benchmarks in columns
+                col_width = max(len(alias) for alias in benchmark_list) + 2
+                num_cols = 3  # Adjust this for different terminal widths
+
+                for i in range(0, len(benchmark_list), num_cols):
+                    row = benchmark_list[i : i + num_cols]
+                    click.echo("  " + "".join(alias.ljust(col_width) for alias in row))
+
+                click.echo(f"\nTotal: {len(benchmark_list)} benchmarks available")
+                click.echo("\nUse 'algosystem benchmarks --info' for detailed descriptions.")
+                click.echo("Use 'algosystem benchmarks <alias>' to fetch a specific benchmark.")
+                return
+            except ImportError:
+                click.echo(
+                    "Error: Benchmark module not available. Make sure yfinance is installed:"
+                )
+                click.echo("  pip install yfinance")
+                sys.exit(1)
+
+        # Fetch all benchmarks
+        if fetch_all:
+            try:
+                click.echo("Fetching data for all benchmarks...")
+                from algosystem.data.benchmark import fetch_all_benchmarks
+
+                benchmarks = fetch_all_benchmarks(
+                    start_date=start_date, end_date=end_date, force_refresh=force_refresh
+                )
+
+                click.echo(f"Successfully fetched data for {len(benchmarks)} benchmarks.")
+                return
+            except ImportError:
+                click.echo(
+                    "Error: Benchmark module not available. Make sure yfinance is installed:"
+                )
+                click.echo("  pip install yfinance")
+                sys.exit(1)
+
+        # Fetch specific benchmark
+        if benchmark:
+            try:
+                click.echo(f"Fetching data for benchmark: {benchmark}")
+                benchmark_data = fetch_benchmark_data(
+                    benchmark, start_date=start_date, end_date=end_date, force_refresh=force_refresh
+                )
+
+                # Print benchmark info
+                click.echo(f"Successfully fetched benchmark data: {benchmark}")
+                click.echo(f"Data shape: {benchmark_data.shape}")
+                click.echo(
+                    f"Date range: {benchmark_data.index[0].date()} to {benchmark_data.index[-1].date()}"
+                )
+
+                # Calculate a few basic stats
+                returns = benchmark_data.pct_change().dropna()
+                total_return = (benchmark_data.iloc[-1] / benchmark_data.iloc[0]) - 1
+                annualized_return = (1 + total_return) ** (252 / len(returns)) - 1
+                volatility = returns.std() * np.sqrt(252)
+
+                click.echo(f"Total return: {total_return:.2%}")
+                click.echo(f"Annualized return: {annualized_return:.2%}")
+                click.echo(f"Annualized volatility: {volatility:.2%}")
+
+                return
+            except ImportError:
+                click.echo(
+                    "Error: Benchmark module not available. Make sure yfinance is installed:"
+                )
+                click.echo("  pip install yfinance")
+                sys.exit(1)
+            except ValueError as e:
+                click.echo(f"Error: {str(e)}")
+                sys.exit(1)
+
+    except Exception as e:
+        click.echo(f"Error: {str(e)}")
+        # Print traceback for debugging
+        click.echo(traceback.format_exc())
+        sys.exit(1)
+
+
+# Add a command to compare benchmarks
+@cli.command()
+@click.argument("benchmarks", nargs=-1, required=True)
+@click.option("--output-file", "-o", type=click.Path(), help="Save comparison results to CSV file")
+@click.option("--start-date", help="Start date for comparison (YYYY-MM-DD). Default: 5 years ago")
+@click.option("--end-date", help="End date for comparison (YYYY-MM-DD). Default: today")
+@click.option(
+    "--metrics", is_flag=True, default=False, help="Show performance metrics for each benchmark"
+)
+@click.option(
+    "--force-refresh",
+    is_flag=True,
+    default=False,
+    help="Force refresh of benchmark data even if cached data exists",
+)
+def compare_benchmarks(benchmarks, output_file, start_date, end_date, metrics, force_refresh):
+    """
+    Compare multiple benchmarks over the same period.
+
+    Provide benchmark aliases separated by spaces.
+    Example: algosystem compare-benchmarks sp500 nasdaq treasuries
+    """
+    try:
+        # Import required functions
+        from algosystem.data.benchmark import compare_benchmarks, get_benchmark_metrics
+
+        # Parse dates if provided
+        if start_date:
+            start_date = pd.to_datetime(start_date)
+        if end_date:
+            end_date = pd.to_datetime(end_date)
+
+        # Get comparison data
+        click.echo(f"Comparing benchmarks: {', '.join(benchmarks)}")
+        comparison_df = compare_benchmarks(benchmarks, start_date=start_date, end_date=end_date)
+
+        # Print basic info
+        click.echo(
+            f"Comparison period: {comparison_df.index[0].date()} to {comparison_df.index[-1].date()}"
+        )
+        click.echo(f"Number of trading days: {len(comparison_df)}")
+
+        # Calculate total returns
+        total_returns = {}
+        for column in comparison_df.columns:
+            total_returns[column] = (
+                comparison_df[column].iloc[-1] / comparison_df[column].iloc[0]
+            ) - 1
+
+        # Sort by total return
+        sorted_benchmarks = sorted(total_returns.items(), key=lambda x: x[1], reverse=True)
+
+        # Print total returns
+        click.echo("\nTotal Returns:")
+        for benchmark, return_value in sorted_benchmarks:
+            click.echo(f"  {benchmark}: {return_value:.2%}")
+
+        # Show additional metrics if requested
+        if metrics:
+            click.echo("\nPerformance Metrics:")
+            metrics_list = []
+
+            for alias in benchmarks:
+                try:
+                    benchmark_metrics = get_benchmark_metrics(
+                        alias, start_date=start_date, end_date=end_date
+                    )
+
+                    metrics_list.append(
+                        {
+                            "Benchmark": alias,
+                            "Total Return": benchmark_metrics["total_return"] * 100,
+                            "Annual Return": benchmark_metrics["annualized_return"] * 100,
+                            "Volatility": benchmark_metrics["volatility"] * 100,
+                            "Sharpe Ratio": benchmark_metrics["sharpe_ratio"],
+                            "Max Drawdown": benchmark_metrics["max_drawdown"] * 100,
+                        }
+                    )
+                except Exception as e:
+                    click.echo(f"Warning: Could not calculate metrics for {alias}: {str(e)}")
+
+            # Print metrics table
+            if metrics_list:
+                for metric in metrics_list:
+                    click.echo(f"\n  {metric['Benchmark']}:")
+                    click.echo(f"    Total Return: {metric['Total Return']:.2f}%")
+                    click.echo(f"    Annual Return: {metric['Annual Return']:.2f}%")
+                    click.echo(f"    Volatility: {metric['Volatility']:.2f}%")
+                    click.echo(f"    Sharpe Ratio: {metric['Sharpe Ratio']:.2f}")
+                    click.echo(f"    Max Drawdown: {metric['Max Drawdown']:.2f}%")
+
+        # Save to file if requested
+        if output_file:
+            comparison_df.to_csv(output_file)
+            click.echo(f"\nComparison data saved to: {output_file}")
+
+    except ImportError:
+        click.echo("Error: Benchmark module not available. Make sure yfinance is installed:")
+        click.echo("  pip install yfinance")
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Error: {str(e)}")
+        # Print traceback for debugging
+        click.echo(traceback.format_exc())
+        sys.exit(1)
+
+
+# Add a test command to simulate a basic workflow
+@cli.command()
+@click.option(
+    "--output-dir",
+    "-o",
+    type=click.Path(),
+    default="./test_dashboard",
+    help="Directory to save the test dashboard (default: ./test_dashboard)",
+)
+@click.option(
+    "--periods",
+    "-p",
+    type=int,
+    default=252,
+    help="Number of trading days to simulate (default: 252 = 1 year)",
+)
+@click.option("--benchmark", "-b", help="Benchmark to use for comparison", default="sp500")
+@click.option(
+    "--open-browser",
+    is_flag=True,
+    default=False,
+    help="Open the dashboard in a browser when done",
+)
+def test(output_dir, periods, benchmark, open_browser):
+    """
+    Run a quick test with simulated data and generate a dashboard.
+
+    This is useful for testing the system without having real data.
+    It creates a simulated strategy and benchmark, then generates a dashboard.
+    """
+    import numpy as np
+    import os
+    import webbrowser
+    from algosystem.backtesting.engine import Engine
+    from algosystem.backtesting.dashboard.dashboard_generator import generate_dashboard
+
+    click.echo(f"Creating test data with {periods} trading days...")
+
+    # Create a directory for test output
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Generate random data for a simulated strategy
+    dates = pd.date_range(end=datetime.now(), periods=periods, freq="B")
+    np.random.seed(42)  # For reproducibility
+
+    # Strategy returns with positive drift
+    returns = np.random.normal(0.0005, 0.01, periods)  # 0.05% daily return, 1% volatility
+    strategy_prices = 100 * (1 + pd.Series(returns, index=dates)).cumprod()
+
+    # Save strategy data to CSV
+    strategy_file = os.path.join(output_dir, "strategy.csv")
+    strategy_prices.to_csv(strategy_file)
+    click.echo(f"Strategy data saved to {strategy_file}")
+
+    # Try to get benchmark data
+    benchmark_data = None
+    try:
+        click.echo(f"Loading benchmark data for {benchmark}...")
+        benchmark_data = fetch_benchmark_data(benchmark, start_date=dates[0], end_date=dates[-1])
+        click.echo(f"Loaded benchmark data with {len(benchmark_data)} rows")
+    except Exception as e:
+        click.echo(f"Warning: Error fetching benchmark data: {str(e)}")
+        click.echo("Continuing without benchmark data...")
+
+    # Run backtest and generate dashboard
+    click.echo("Running backtest...")
+    engine = Engine(data=strategy_prices, benchmark=benchmark_data)
+    results = engine.run()
+
+    # Print some basic metrics
+    metrics = results["metrics"]
+    click.echo("\nBacktest Results:")
+    click.echo(f"Total Return: {metrics.get('total_return', 0)*100:.2f}%")
+    click.echo(f"Annualized Return: {metrics.get('annualized_return', 0)*100:.2f}%")
+    click.echo(f"Max Drawdown: {metrics.get('max_drawdown', 0)*100:.2f}%")
+    click.echo(f"Sharpe Ratio: {metrics.get('sharpe_ratio', 0):.2f}")
+
+    if "alpha" in metrics:
+        click.echo(f"Alpha: {metrics.get('alpha', 0)*100:.2f}%")
+    if "beta" in metrics:
+        click.echo(f"Beta: {metrics.get('beta', 0):.2f}")
+
+    # Generate dashboard
+    click.echo("\nGenerating dashboard...")
+    dashboard_path = generate_dashboard(
+        engine=engine, output_dir=output_dir, open_browser=open_browser
+    )
+
+    click.echo(f"Dashboard generated at: {dashboard_path}")
+
+    if not open_browser:
+        click.echo(f"To view the dashboard, open this file in a web browser:")
+        click.echo(f"  {os.path.abspath(dashboard_path)}")
+
+    return dashboard_path
 
 
 if __name__ == "__main__":

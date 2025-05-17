@@ -14,6 +14,7 @@ def rolling_sortino(returns, window=30):
 def rolling_volatility(returns, window=30):
     return returns.rolling(window).std() * np.sqrt(252)  # Annualized
 
+
 def calmar(returns):
     return qs.stats.calmar(returns)
 
