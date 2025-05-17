@@ -43,6 +43,7 @@ pytest = "^8.3.5"
 flake8 = "^7.2.0"
 openpyxl = "^3.1.5"
 yfinance = "^0.2.61"
+python-dotenv = "^1.1.0"
 
 [tool.poetry.scripts]
 algosystem = "algosystem.cli.commands:cli"
