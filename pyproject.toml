@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "algosystem"
-version = "0.1.1"
+version = "0.1.2"
 description = "A batteries-included pythonic library for AlgoGators members"
 authors = ["AlgoGators Team <team@algogators.org>"]
 homepage = "https://github.com/algogators/algosystem"
@@ -10,9 +10,10 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Financial and Insurance Industry",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10"
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 
 packages = [
