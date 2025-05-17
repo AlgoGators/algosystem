@@ -33,11 +33,13 @@ jobs:
       uses: actions/cache@v3
       with:
         path: .venv
-        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
     
     - name: Install dependencies
-      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction --no-root
+      run: |
+        poetry install --no-interaction --no-root
+        # Explicitly install IPython to ensure it's available
+        poetry add ipython
     
     - name: Install project
       run: poetry install --no-interaction
@@ -80,7 +82,10 @@ jobs:
       uses: snok/install-poetry@v1
     
     - name: Install dependencies
-      run: poetry install --no-interaction
+      run: |
+        poetry install --no-interaction
+        # Explicitly install IPython to ensure it's available
+        poetry add ipython
     
     - name: Run integration tests
       run: |
@@ -111,7 +116,10 @@ jobs:
       uses: snok/install-poetry@v1
     
     - name: Install dependencies
-      run: poetry install --no-interaction
+      run: |
+        poetry install --no-interaction
+        # Explicitly install IPython to ensure it's available
+        poetry add ipython
     
     - name: Test examples
       run: |
