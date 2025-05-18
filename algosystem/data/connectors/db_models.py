@@ -1,5 +1,9 @@
-from sqlalchemy import create_engine, Column, String, Float, Integer, DateTime
+from sqlalchemy import (
+    create_engine, Column, String, Float, Integer, DateTime,
+    Date, BigInteger
+)
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm.session import Session
@@ -11,30 +15,63 @@ import os
 Base = declarative_base()
 
 
-class OHLCV(Base):
-    """
-    SQLAlchemy model representing the `ohlcv_1d` table in the `futures_data` schema.
-    
-    Attributes:
-        time (datetime): The timestamp for the data entry (primary key).
-        symbol (str): The symbol or identifier for the instrument (primary key).
-        open (float): The opening price for the interval.
-        high (float): The highest price for the interval.
-        low (float): The lowest price for the interval.
-        close (float): The closing price for the interval.
-        volume (int): The trading volume for the interval.
-    """
-    __tablename__ = "ohlcv_1d"
-    __table_args__ = {"schema": "futures_data"}
+class EquityCurve(Base):
+    __tablename__ = "equity_curve"
+    __table_args__ = {"schema": "backtest"}
 
-    time: Column = Column(DateTime, primary_key=True, nullable=False)
-    symbol: Column = Column(String, primary_key=True, nullable=False)
-    open: Column = Column(Float, nullable=False)
-    high: Column = Column(Float, nullable=False)
-    low: Column = Column(Float, nullable=False)
-    close: Column = Column(Float, nullable=False)
-    volume: Column = Column(Integer, nullable=False)
+    run_id    = Column(BigInteger, primary_key=True, nullable=False)
+    timestamp = Column(DateTime,   primary_key=True, nullable=False)
+    equity    = Column(Float,      nullable=False)
 
+
+class FinalPosition(Base):
+    __tablename__ = "final_positions"
+    __table_args__ = {"schema": "backtest"}
+
+    run_id         = Column(BigInteger, primary_key=True, nullable=False)
+    symbol         = Column(String,     primary_key=True, nullable=False)
+    quantity       = Column(Float,      nullable=False)
+    average_price  = Column(Float,      nullable=False)
+    unrealized_pnl = Column(Float,      nullable=False)
+    realized_pnl   = Column(Float,      nullable=False)
+
+
+class Result(Base):
+    __tablename__ = "results"
+    __table_args__ = {"schema": "backtest"}
+
+    run_id              = Column(BigInteger, primary_key=True, nullable=False)
+    start_date          = Column(Date,       nullable=False)
+    end_date            = Column(Date,       nullable=False)
+    total_return        = Column(Float)
+    sharpe_ratio        = Column(Float)
+    sortino_ratio       = Column(Float)
+    max_drawdown        = Column(Float)
+    calmar_ratio        = Column(Float)
+    volatility          = Column(Float)
+    total_trades        = Column(Integer)
+    win_rate            = Column(Float)
+    profit_factor       = Column(Float)
+    avg_win             = Column(Float)
+    avg_loss            = Column(Float)
+    max_win             = Column(Float)
+    max_loss            = Column(Float)
+    avg_holding_period  = Column(Float)
+    var_95              = Column(Float)
+    cvar_95             = Column(Float)
+    beta                = Column(Float)
+    correlation         = Column(Float)
+    downside_volatility = Column(Float)
+    config              = Column(JSONB)
+
+
+class SymbolPnl(Base):
+    __tablename__ = "symbol_pnl"
+    __table_args__ = {"schema": "backtest"}
+
+    run_id = Column(BigInteger, primary_key=True, nullable=False)
+    symbol = Column(String,     primary_key=True, nullable=False)
+    pnl    = Column(Float,      nullable=False)
 
 def get_engine() -> Engine:
     """

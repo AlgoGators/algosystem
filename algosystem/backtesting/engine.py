@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from algosystem.utils._logging import get_logger
 from algosystem.backtesting import metrics
 
+from algosystem.data.connectors.inserter import Inserter
+
 logger = get_logger(__name__)
 
 
@@ -295,3 +297,83 @@ class Engine:
         )
 
         return generate_standalone_dashboard(self, output_path)
+    
+    def export_db(self, run_id=None, include_positions=True, include_pnl=True):
+        """
+        Export backtest results to the database.
+        
+        Parameters:
+        -----------
+        run_id : int, optional
+            Unique identifier for this backtest run. If not provided, a new ID is generated.
+        include_positions : bool, optional
+            Whether to export final positions data (if available). Defaults to True.
+        include_pnl : bool, optional
+            Whether to export symbol PnL data (if available). Defaults to True.
+            
+        Returns:
+        --------
+        int
+            The run_id used for the export
+            
+        Notes:
+        ------
+        - Requires database connection parameters in .env file
+        - Database schema must exist with the required tables (see documentation)
+        - Uses psycopg2 for database connections
+        """
+        # Check if results are available
+        if self.results is None:
+            logger.warning("No results available. Running backtest first.")
+            self.run()
+            
+        if self.results is None:
+            raise ValueError("No results available to export to database.")
+        
+        try:
+            from algosystem.data.connectors.inserter import Inserter
+        except ImportError:
+            raise ImportError("Required module 'psycopg2' not found. Install it with: pip install psycopg2-binary")
+        
+        # Create inserter instance
+        inserter = Inserter()
+        
+        # Get or generate run_id
+        if run_id is None:
+            run_id = inserter.get_next_run_id()
+        
+        # Prepare data for export
+        equity_curve = self.results.get("equity")
+        metrics = self.results.get("metrics", {})
+        
+        # Extract configuration if available
+        config = {
+            "start_date": self.start_date.strftime("%Y-%m-%d") if hasattr(self.start_date, "strftime") else str(self.start_date),
+            "end_date": self.end_date.strftime("%Y-%m-%d") if hasattr(self.end_date, "strftime") else str(self.end_date),
+            "initial_capital": float(self.initial_capital),
+            "benchmark": self.benchmark_series is not None,
+        }
+        
+        # Prepare final positions data if available and requested
+        final_positions = None
+        if include_positions and hasattr(self, "positions") and self.positions is not None:
+            final_positions = self.positions
+        
+        # Prepare symbol PnL data if available and requested
+        symbol_pnl = None
+        if include_pnl and hasattr(self, "symbol_pnl") and self.symbol_pnl is not None:
+            symbol_pnl = self.symbol_pnl
+        
+        # Export to database
+        run_id = inserter.export_backtest_results(
+            run_id=run_id,
+            equity_curve=equity_curve,
+            final_positions=final_positions,
+            symbol_pnl=symbol_pnl,
+            metrics=metrics,
+            config=config
+        )
+        
+        logger.info(f"Successfully exported backtest results to database with run_id: {run_id}")
+        
+        return run_id

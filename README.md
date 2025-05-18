@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/algosystem.svg)](https://badge.fury.io/py/algosystem)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL v3](https://img.shields.io/badge/License-MIT-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Built with Poetry](https://img.shields.io/badge/built%20with-Poetry-purple)](https://python-poetry.org/)
 
 **A batteries-included Python library for algorithmic trading backtesting and beautiful, interactive dashboard visualization.**
