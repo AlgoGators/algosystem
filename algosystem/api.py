@@ -5,22 +5,16 @@ Enhanced AlgoSystem API - provides a comprehensive Python interface to all funct
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
-from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
 from algosystem.backtesting import Engine
-from algosystem.backtesting.dashboard.dashboard_generator import (
-    generate_dashboard,
-    generate_standalone_dashboard,
-)
 from algosystem.backtesting.dashboard.utils.default_config import get_default_config
 from algosystem.data.benchmark import (
     fetch_benchmark_data,
     get_benchmark_list,
     get_benchmark_info,
-    BENCHMARK_ALIASES,
     DEFAULT_BENCHMARK,
 )
 from algosystem.utils._logging import get_logger
@@ -287,6 +281,31 @@ class AlgoSystem:
             raise ValueError(f"Unsupported format: {format}. Use 'csv' or 'excel'.")
 
         return output_path
+    
+    @staticmethod
+    def export_to_db(engine, db_url, table_name="backtest_results"):
+        """
+        Export backtest results to a database.
+
+        Parameters:
+        -----------
+        engine : Engine
+            Backtesting engine instance with results
+        db_url : str
+            Database connection URL
+        table_name : str, optional
+            Name of the table to store results
+
+        Returns:
+        --------
+        None
+        """
+        if engine.results is None:
+            console.print("[bold red]No results available. Run the backtest first.[/bold red]")
+            return
+
+        # Export results to database
+        engine.export_to_db(db_url, table_name)
 
     @staticmethod
     def export_charts(engine, output_dir=None, dpi=300):
