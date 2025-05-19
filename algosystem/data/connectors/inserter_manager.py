@@ -1,86 +1,38 @@
-import logging
-import os
-from typing import Any, Dict, List, Optional
-
+from typing import Optional, Union, List, Any, Dict
 import pandas as pd
-import psycopg2
-from dotenv import load_dotenv
-from psycopg2.extras import execute_values
+from datetime import datetime
+from algosystem.data.connectors.base_db_manager import BaseDBManager
 
-load_dotenv()
-
-
-class Inserter:
-    """
-    Inserts backtesting results into Postgres database tables.
-    Connection parameters are read from .env file.
-    """
-
-    def __init__(self) -> None:
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(logging.INFO)
-
-        # Load and validate environment variables
-        self.db_name = os.getenv("DB_NAME")
-        self.db_user = os.getenv("DB_USER")
-        self.db_pass = os.getenv("DB_PASSWORD")
-        self.db_host = os.getenv("DB_HOST")
-        self.db_port = os.getenv("DB_PORT")
-
-        missing = [
-            k
-            for k, v in {
-                "DB_NAME": self.db_name,
-                "DB_USER": self.db_user,
-                "DB_PASSWORD": self.db_pass,
-                "DB_HOST": self.db_host,
-                "DB_PORT": self.db_port,
-            }.items()
-            if not v
-        ]
-
-        if missing:
-            raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
-
-        self.conn = None  # psycopg2 connection
-
-    def connect(self) -> None:
-        """Establish a psycopg2 connection (reuses if open)."""
-        if self.conn and not self.conn.closed:
-            return
-
-        self.logger.info("Opening new database connection")
-        self.conn = psycopg2.connect(
-            dbname=self.db_name,
-            user=self.db_user,
-            password=self.db_pass,
-            host=self.db_host,
-            port=self.db_port,
-        )
-
-    def insert_data(self, data: List[Dict[str, Any]], schema: str, table: str) -> None:
+class InserterManager(BaseDBManager):
+    """Class for inserting data into the database."""
+    
+    def insert_data(self, records: List[Dict[str, Any]], schema: str, table: str) -> bool:
         """
-        Bulk insert a list of same-shaped dictionaries into schema.table.
+        Inserts data into a specified table.
 
         Args:
-            data: List of dictionaries with identical keys
-            schema: Database schema name
-            table: Database table name
+            records (List[Dict[str, Any]]): List of dictionaries with data to insert
+            schema (str): Database schema name
+            table (str): Database table name
+            
+        Returns:
+            bool: True if operation was successful, False otherwise
         """
-        if not data:
+        if not records:
             self.logger.warning(f"No rows to insert into {schema}.{table}")
-            return
+            return False
 
-        self.connect()
+        self._connect_psycopg2()
         full_table = f"{schema}.{table}"
-        cols = list(data[0].keys())
+        cols = list(records[0].keys())
         col_list = ", ".join(cols)
         # Template for each row: "(%s,%s,...)"
         tmpl = "(" + ",".join(["%s"] * len(cols)) + ")"
-        values = [tuple(item[c] for c in cols) for item in data]
+        values = [tuple(item[c] for c in cols) for item in records]
 
         try:
             with self.conn.cursor() as cur:
+                from psycopg2.extras import execute_values
                 execute_values(
                     cur,
                     f"INSERT INTO {full_table} ({col_list}) VALUES %s",
@@ -89,49 +41,20 @@ class Inserter:
                 )
             self.conn.commit()
             self.logger.info(f"Inserted {len(values)} rows into {full_table}")
+            return True
         except Exception as e:
             self.conn.rollback()
             self.logger.error(f"Failed to insert into {full_table}: {e}")
-            raise
-
-    def validate_insertion(self, schema: str, table: str, expected_rows: int) -> bool:
-        """
-        Verify that at least the expected number of rows are present in the table.
-
-        Args:
-            schema: Database schema name
-            table: Database table name
-            expected_rows: Minimum number of rows expected
-
-        Returns:
-            True if validation passes, False otherwise
-        """
-        try:
-            self.connect()
-            full_table = f"{schema}.{table}"
-            with self.conn.cursor() as cur:
-                cur.execute(f"SELECT COUNT(*) FROM {full_table}")
-                actual = cur.fetchone()[0]
-            if actual >= expected_rows:
-                self.logger.info(f"Validation OK: {actual} ≥ {expected_rows} rows")
-                return True
-            else:
-                self.logger.warning(
-                    f"Validation FAILED for {full_table}: found {actual}, expected ≥{expected_rows}"
-                )
-                return False
-        except Exception as e:
-            self.logger.error(f"Validation error for {schema}.{table}: {e}")
             return False
-
+    
     def get_next_run_id(self) -> int:
         """
         Get the next available run_id from the backtest.results table.
 
         Returns:
-            The next available run_id
+            int: The next available run_id
         """
-        self.connect()
+        self._connect_psycopg2()
         try:
             with self.conn.cursor() as cur:
                 cur.execute("SELECT COALESCE(MAX(run_id), 0) + 1 FROM backtest.results")
@@ -140,35 +63,56 @@ class Inserter:
         except Exception as e:
             self.logger.error(f"Error getting next run_id: {e}")
             raise
-
+    
     def export_backtest_results(
         self,
-        run_id: int,
+        run_id: Union[str, int],
         equity_curve: pd.Series,
+        name: str = "Backtest",
+        description: str = "",
+        hyperparameters: Optional[Dict[str, Any]] = None,
         final_positions: Optional[pd.DataFrame] = None,
         symbol_pnl: Optional[pd.DataFrame] = None,
         metrics: Optional[Dict[str, Any]] = None,
         config: Optional[Dict[str, Any]] = None,
-    ) -> int:
+    ) -> Union[str, int]:
         """
         Export backtest results to the database.
 
         Args:
-            run_id: Unique identifier for this backtest run
-            equity_curve: Series of equity values indexed by timestamp
-            final_positions: DataFrame of final positions
-            symbol_pnl: DataFrame of PnL by symbol
-            metrics: Dictionary of backtest metrics
-            config: Dictionary of backtest configuration
+            run_id (Union[str, int]): Unique identifier for this backtest run
+            equity_curve (pd.Series): Series of equity values indexed by timestamp
+            name (str, optional): Name of the backtest. Defaults to "Backtest".
+            description (str, optional): Description of the backtest. Defaults to "".
+            hyperparameters (Optional[Dict[str, Any]], optional): Dictionary of hyperparameters. Defaults to None.
+            final_positions (Optional[pd.DataFrame], optional): DataFrame of final positions. Defaults to None.
+            symbol_pnl (Optional[pd.DataFrame], optional): DataFrame of PnL by symbol. Defaults to None.
+            metrics (Optional[Dict[str, Any]], optional): Dictionary of backtest metrics. Defaults to None.
+            config (Optional[Dict[str, Any]], optional): Dictionary of backtest configuration. Defaults to None.
 
         Returns:
-            The run_id used for the export
+            Union[str, int]: The run_id used for the export
         """
-        self.connect()
+        self._connect_psycopg2()
         
         try:
-            # FIRST: Export backtest results and metrics
-            # This must happen first due to foreign key constraints
+            # Convert dictionaries to JSON strings if they exist
+            import json
+            config_json = json.dumps(config) if config is not None else None
+            hyperparameters_json = json.dumps(hyperparameters) if hyperparameters is not None else None
+            
+            # FIRST: Insert metadata record
+            metadata_data = {
+                "run_id": run_id,
+                "name": name,
+                "description": description,
+                "hyperparameters": hyperparameters_json,
+                "date_inserted": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            
+            self.insert_data([metadata_data], "backtest", "run_metadata")
+            
+            # SECOND: Export backtest results and metrics
             if metrics is not None:
                 # Prepare metrics data
                 result_data = {
@@ -179,12 +123,8 @@ class Inserter:
                     "end_date": equity_curve.index[-1].date()
                     if equity_curve is not None and not equity_curve.empty
                     else None,
+                    "config": config_json,
                 }
-
-                # Convert config to JSON string if it exists
-                if config is not None:
-                    import json
-                    result_data["config"] = json.dumps(config)
 
                 # Add specific metrics
                 metric_fields = [
@@ -224,16 +164,12 @@ class Inserter:
                     "end_date": equity_curve.index[-1].date()
                     if equity_curve is not None and not equity_curve.empty
                     else None,
+                    "config": config_json,
                 }
-                
-                # Convert config to JSON string if it exists
-                if config is not None:
-                    import json
-                    result_data["config"] = json.dumps(config)
                     
                 self.insert_data([result_data], "backtest", "results")
 
-            # SECOND: Export equity curve
+            # THIRD: Export equity curve
             if equity_curve is not None and not equity_curve.empty:
                 equity_data = []
                 for timestamp, equity in equity_curve.items():
@@ -243,7 +179,7 @@ class Inserter:
 
                 self.insert_data(equity_data, "backtest", "equity_curve")
 
-            # THIRD: Export final positions
+            # FOURTH: Export final positions if available
             if final_positions is not None and not final_positions.empty:
                 positions_data = []
                 for _, row in final_positions.iterrows():
@@ -260,7 +196,7 @@ class Inserter:
 
                 self.insert_data(positions_data, "backtest", "final_positions")
 
-            # FOURTH: Export symbol PnL
+            # FIFTH: Export symbol PnL if available
             if symbol_pnl is not None and not symbol_pnl.empty:
                 pnl_data = []
                 for _, row in symbol_pnl.iterrows():
@@ -285,5 +221,3 @@ class Inserter:
             except Exception as rollback_error:
                 self.logger.error(f"Error during rollback: {rollback_error}")
             raise
-
-

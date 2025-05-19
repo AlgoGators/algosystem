@@ -313,14 +313,20 @@ class Engine:
 
         return generate_standalone_dashboard(self, output_path)
 
-    def export_db(self, run_id=None, include_positions=True, include_pnl=True):
+    def export_db(self, run_id=None, name="Backtest", description="", hyperparameters=None, include_positions=True, include_pnl=True):
         """
         Export backtest results to the database.
 
         Parameters:
         -----------
-        run_id : int, optional
+        run_id : int or str, optional
             Unique identifier for this backtest run. If not provided, a new ID is generated.
+        name : str, optional
+            Name for this backtest run. Defaults to "Backtest".
+        description : str, optional
+            Description of this backtest run.
+        hyperparameters : dict, optional
+            Dictionary of hyperparameters used in this backtest.
         include_positions : bool, optional
             Whether to export final positions data (if available). Defaults to True.
         include_pnl : bool, optional
@@ -328,38 +334,36 @@ class Engine:
 
         Returns:
         --------
-        int
+        int or str
             The run_id used for the export
 
         Notes:
         ------
         - Requires database connection parameters in .env file
         - Database schema must exist with the required tables (see documentation)
-        - Uses psycopg2 for database connections
         """
         # Check if results are available
         if self.results is None:
             logger.warning("No results available. Running backtest first.")
             self.run()
 
-        if self.results is None:
-            raise ValueError("No results available to export to database.")
+            if self.results is None:
+                raise ValueError("No results available to export to database.")
 
         try:
-            from algosystem.data.connectors.inserter import Inserter
+            from algosystem.data.connectors.db_manager import DBManager
         except ImportError:
             raise ImportError(
-                "Required module 'psycopg2' not found. Install it with: pip install psycopg2-binary"
+                "Required database modules not found. Check your installation and database configuration."
             )
 
-        # Create inserter instance
-        inserter = Inserter()
+        # Create DB manager instance
+        db = DBManager()
 
         # Get or generate run_id
         if run_id is None:
-            # Generate a text-based run_id in the same format as existing ones
-            import time
-            run_id = f"{int(time.time() * 1000)}"
+            # Generate a unique run_id
+            run_id = db.get_next_run_id()
         
         # Ensure run_id is a string
         run_id = str(run_id)
@@ -382,11 +386,7 @@ class Engine:
 
         # Prepare final positions data if available and requested
         final_positions = None
-        if (
-            include_positions
-            and hasattr(self, "positions")
-            and self.positions is not None
-        ):
+        if include_positions and hasattr(self, "positions") and self.positions is not None:
             final_positions = self.positions
 
         # Prepare symbol PnL data if available and requested
@@ -395,8 +395,11 @@ class Engine:
             symbol_pnl = self.symbol_pnl
 
         # Export to database
-        run_id = inserter.export_backtest_results(
+        run_id = db.export_backtest_results(
             run_id=run_id,
+            name=name,
+            description=description,
+            hyperparameters=hyperparameters,
             equity_curve=equity_curve,
             final_positions=final_positions,
             symbol_pnl=symbol_pnl,
@@ -404,8 +407,7 @@ class Engine:
             config=config,
         )
 
-        logger.info(
-            f"Successfully exported backtest results to database with run_id: {run_id}"
-        )
+        logger.info(f"Successfully exported backtest results to database with run_id: {run_id}")
 
         return run_id
+
