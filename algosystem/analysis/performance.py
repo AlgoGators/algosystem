@@ -1,5 +1,5 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 from scipy import stats
 
 
@@ -241,7 +241,11 @@ def analyze_returns_by_period(returns):
             "positive_pct": quarterly_positive,
             "returns": quarterly_returns,
         },
-        "annual": {"mean": annual_mean, "positive_pct": annual_positive, "returns": annual_returns},
+        "annual": {
+            "mean": annual_mean,
+            "positive_pct": annual_positive,
+            "returns": annual_returns,
+        },
         "day_of_week": dow_analysis,
         "month_of_year": moy_analysis,
     }

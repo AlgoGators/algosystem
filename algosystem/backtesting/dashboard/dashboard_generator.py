@@ -1,12 +1,11 @@
-import os
 import json
-import tempfile
-import webbrowser
+import os
 import shutil
+import webbrowser
 
 from .template.base_template import generate_html
-from .utils.data_formatter import prepare_dashboard_data
 from .utils.config_parser import validate_config
+from .utils.data_formatter import prepare_dashboard_data
 
 
 def generate_dashboard(engine, output_dir=None, open_browser=True, config_path=None):
@@ -47,7 +46,9 @@ def generate_dashboard(engine, output_dir=None, open_browser=True, config_path=N
     # Load graph configuration
     if config_path is None:
         # Check for a user config first
-        user_config = os.path.join(os.path.expanduser("~"), ".algosystem", "dashboard_config.json")
+        user_config = os.path.join(
+            os.path.expanduser("~"), ".algosystem", "dashboard_config.json"
+        )
         if os.path.exists(user_config):
             print(f"Using user configuration from: {user_config}")
             with open(user_config, "r") as f:
@@ -130,9 +131,11 @@ def generate_dashboard(engine, output_dir=None, open_browser=True, config_path=N
     if config_path:
         config_info = f"<p>Configuration source: {os.path.basename(config_path)}</p>"
     else:
-        user_config = os.path.join(os.path.expanduser("~"), ".algosystem", "dashboard_config.json")
+        user_config = os.path.join(
+            os.path.expanduser("~"), ".algosystem", "dashboard_config.json"
+        )
         if os.path.exists(user_config):
-            config_info = f"<p>Configuration source: User configuration</p>"
+            config_info = "<p>Configuration source: User configuration</p>"
         else:
             config_info = "<p>Configuration source: Default configuration</p>"
 
@@ -882,8 +885,8 @@ def generate_standalone_dashboard(engine, output_path=None, config_path=None):
     output_path : str
         Path to the generated standalone HTML file
     """
-    import os
     import json
+    import os
     from datetime import datetime
 
     # Check if backtest results are available
@@ -911,10 +914,14 @@ def generate_standalone_dashboard(engine, output_path=None, config_path=None):
             try:
                 with open(config_path, "r") as f:
                     config = json.load(f)
-                config_source = f"Custom configuration from {os.path.basename(config_path)}"
+                config_source = (
+                    f"Custom configuration from {os.path.basename(config_path)}"
+                )
                 print(f"Using configuration from: {config_path}")
             except Exception as e:
-                print(f"Warning: Failed to load configuration from {config_path}: {str(e)}")
+                print(
+                    f"Warning: Failed to load configuration from {config_path}: {str(e)}"
+                )
                 print("Using default configuration instead.")
                 config = None
         else:
@@ -930,7 +937,9 @@ def generate_standalone_dashboard(engine, output_path=None, config_path=None):
             try:
                 with open(user_config_path, "r") as f:
                     config = json.load(f)
-                config_source = f"User configuration from {os.path.basename(user_config_path)}"
+                config_source = (
+                    f"User configuration from {os.path.basename(user_config_path)}"
+                )
                 print(f"Using user configuration from: {user_config_path}")
             except Exception as e:
                 print(f"Warning: Failed to load user configuration: {str(e)}")
@@ -959,7 +968,7 @@ def generate_standalone_dashboard(engine, output_path=None, config_path=None):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{dashboard_data['metadata']['title']} - AlgoSystem Dashboard</title>
+    <title>{dashboard_data["metadata"]["title"]} - AlgoSystem Dashboard</title>
     
     <!-- Required libraries from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
@@ -1215,11 +1224,11 @@ def generate_standalone_dashboard(engine, output_path=None, config_path=None):
         <!-- Header -->
         <header class="dashboard-header">
             <div class="header-info">
-                <h1>{dashboard_data['metadata']['title']}</h1>
-                <div class="date-range">Backtest Period: {dashboard_data['metadata']['start_date']} to {dashboard_data['metadata']['end_date']}</div>
+                <h1>{dashboard_data["metadata"]["title"]}</h1>
+                <div class="date-range">Backtest Period: {dashboard_data["metadata"]["start_date"]} to {dashboard_data["metadata"]["end_date"]}</div>
             </div>
             <div class="header-summary">
-                <h2 class="{('positive-return' if dashboard_data['metadata']['total_return'] >= 0 else 'negative-return')}">{'+' if dashboard_data['metadata']['total_return'] >= 0 else ''}{dashboard_data['metadata']['total_return']:.2f}%</h2>
+                <h2 class="{("positive-return" if dashboard_data["metadata"]["total_return"] >= 0 else "negative-return")}">{"+" if dashboard_data["metadata"]["total_return"] >= 0 else ""}{dashboard_data["metadata"]["total_return"]:.2f}%</h2>
                 <p class="label">Total Return</p>
             </div>
         </header>

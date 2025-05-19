@@ -1,6 +1,6 @@
+from ..utils.config_parser import get_component_rows
 from .chart_templates import generate_chart_html
 from .metric_templates import generate_metric_html
-from ..utils.config_parser import get_component_rows, get_max_row
 
 
 def generate_html(engine, config, dashboard_data):
@@ -36,7 +36,7 @@ def generate_html(engine, config, dashboard_data):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{config['layout']['title']}</title>
+    <title>{config["layout"]["title"]}</title>
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
@@ -87,8 +87,8 @@ def generate_header_html(dashboard_data):
     header_html = f"""
 <header class="dashboard-header">
     <div class="header-info">
-        <h1>{metadata['title']}</h1>
-        <div class="date-range">Backtest Period: {metadata['start_date']} to {metadata['end_date']}</div>
+        <h1>{metadata["title"]}</h1>
+        <div class="date-range">Backtest Period: {metadata["start_date"]} to {metadata["end_date"]}</div>
     </div>
     <div class="header-summary">
         <h2 class="{total_return_class}">{total_return_sign}{total_return:.2f}%</h2>

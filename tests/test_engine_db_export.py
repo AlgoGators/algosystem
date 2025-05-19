@@ -1,8 +1,8 @@
-import pytest
-import pandas as pd
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from datetime import datetime, timedelta
-from unittest.mock import patch, MagicMock
+import pandas as pd
+import pytest
 
 from algosystem.backtesting.engine import Engine
 
@@ -13,14 +13,14 @@ class TestEngineDBExport:
     @pytest.fixture
     def sample_price_series(self):
         """Create a sample price series for testing."""
-        dates = pd.date_range('2022-01-01', periods=100, freq='D')
+        dates = pd.date_range("2022-01-01", periods=100, freq="D")
         np.random.seed(42)
         returns = np.random.normal(0.001, 0.02, 100)
         prices = 100 * (1 + pd.Series(returns, index=dates)).cumprod()
         prices.name = "Test Strategy"
         return prices
 
-    @patch('algosystem.data.connectors.inserter.Inserter')
+    @patch("algosystem.data.connectors.inserter.Inserter")
     def test_export_db_basic(self, mock_inserter_class, sample_price_series):
         """Test basic database export functionality."""
         # Setup mock inserter
@@ -44,13 +44,15 @@ class TestEngineDBExport:
 
         # Check that the export_backtest_results method was called with the right arguments
         call_args = mock_inserter.export_backtest_results.call_args[1]
-        assert call_args['run_id'] == 123
-        assert isinstance(call_args['equity_curve'], pd.Series)
-        assert isinstance(call_args['metrics'], dict)
-        assert isinstance(call_args['config'], dict)
+        assert call_args["run_id"] == 123
+        assert isinstance(call_args["equity_curve"], pd.Series)
+        assert isinstance(call_args["metrics"], dict)
+        assert isinstance(call_args["config"], dict)
 
-    @patch('algosystem.data.connectors.inserter.Inserter')
-    def test_export_db_with_custom_run_id(self, mock_inserter_class, sample_price_series):
+    @patch("algosystem.data.connectors.inserter.Inserter")
+    def test_export_db_with_custom_run_id(
+        self, mock_inserter_class, sample_price_series
+    ):
         """Test database export with custom run_id."""
         # Setup mock inserter
         mock_inserter = MagicMock()
@@ -73,12 +75,12 @@ class TestEngineDBExport:
 
         # Check that the export_backtest_results method was called with the right arguments
         call_args = mock_inserter.export_backtest_results.call_args[1]
-        assert call_args['run_id'] == 456
-        assert isinstance(call_args['equity_curve'], pd.Series)
-        assert isinstance(call_args['metrics'], dict)
-        assert isinstance(call_args['config'], dict)
+        assert call_args["run_id"] == 456
+        assert isinstance(call_args["equity_curve"], pd.Series)
+        assert isinstance(call_args["metrics"], dict)
+        assert isinstance(call_args["config"], dict)
 
-    @patch('algosystem.data.connectors.inserter.Inserter')
+    @patch("algosystem.data.connectors.inserter.Inserter")
     def test_export_db_with_no_results(self, mock_inserter_class, sample_price_series):
         """Test database export when no results are available."""
         # Setup mock inserter
@@ -89,7 +91,7 @@ class TestEngineDBExport:
 
         # Create engine but don't run backtest
         engine = Engine(sample_price_series)
-        
+
         # Mock the run method so it doesn't actually run
         engine.run = MagicMock(return_value=None)
         engine.results = None
@@ -101,8 +103,10 @@ class TestEngineDBExport:
         # The run method should have been called
         engine.run.assert_called_once()
 
-    @patch('algosystem.data.connectors.inserter.Inserter')
-    def test_export_db_with_positions_and_pnl(self, mock_inserter_class, sample_price_series):
+    @patch("algosystem.data.connectors.inserter.Inserter")
+    def test_export_db_with_positions_and_pnl(
+        self, mock_inserter_class, sample_price_series
+    ):
         """Test database export with positions and symbol PnL data."""
         # Setup mock inserter
         mock_inserter = MagicMock()
@@ -116,17 +120,17 @@ class TestEngineDBExport:
 
         # Add mock positions and symbol_pnl data
         positions_data = {
-            'symbol': ['AAPL', 'MSFT', 'GOOGL'],
-            'quantity': [100, 50, 75],
-            'average_price': [150.0, 300.0, 2500.0],
-            'unrealized_pnl': [5000.0, 2500.0, 7500.0],
-            'realized_pnl': [1000.0, 500.0, 1500.0]
+            "symbol": ["AAPL", "MSFT", "GOOGL"],
+            "quantity": [100, 50, 75],
+            "average_price": [150.0, 300.0, 2500.0],
+            "unrealized_pnl": [5000.0, 2500.0, 7500.0],
+            "realized_pnl": [1000.0, 500.0, 1500.0],
         }
         engine.positions = pd.DataFrame(positions_data)
-        
+
         pnl_data = {
-            'symbol': ['AAPL', 'MSFT', 'GOOGL'],
-            'pnl': [6000.0, 3000.0, 9000.0]
+            "symbol": ["AAPL", "MSFT", "GOOGL"],
+            "pnl": [6000.0, 3000.0, 9000.0],
         }
         engine.symbol_pnl = pd.DataFrame(pnl_data)
 
@@ -141,12 +145,12 @@ class TestEngineDBExport:
 
         # Check that the export_backtest_results method was called with the right arguments
         call_args = mock_inserter.export_backtest_results.call_args[1]
-        assert call_args['run_id'] == 123
-        assert isinstance(call_args['equity_curve'], pd.Series)
-        assert isinstance(call_args['final_positions'], pd.DataFrame)
-        assert isinstance(call_args['symbol_pnl'], pd.DataFrame)
-        assert isinstance(call_args['metrics'], dict)
-        assert isinstance(call_args['config'], dict)
+        assert call_args["run_id"] == 123
+        assert isinstance(call_args["equity_curve"], pd.Series)
+        assert isinstance(call_args["final_positions"], pd.DataFrame)
+        assert isinstance(call_args["symbol_pnl"], pd.DataFrame)
+        assert isinstance(call_args["metrics"], dict)
+        assert isinstance(call_args["config"], dict)
 
     def test_export_db_import_error(self, sample_price_series):
         """Test handling of missing psycopg2 dependency."""
@@ -155,12 +159,16 @@ class TestEngineDBExport:
         results = engine.run()
 
         # Mock import error
-        with patch('builtins.__import__', side_effect=ImportError("No module named 'psycopg2'")):
+        with patch(
+            "builtins.__import__", side_effect=ImportError("No module named 'psycopg2'")
+        ):
             with pytest.raises(ImportError):
                 engine.export_db()
 
-    @patch('algosystem.data.connectors.inserter.Inserter')
-    def test_export_db_exclude_positions_and_pnl(self, mock_inserter_class, sample_price_series):
+    @patch("algosystem.data.connectors.inserter.Inserter")
+    def test_export_db_exclude_positions_and_pnl(
+        self, mock_inserter_class, sample_price_series
+    ):
         """Test database export with positions and symbol PnL excluded."""
         # Setup mock inserter
         mock_inserter = MagicMock()
@@ -174,17 +182,17 @@ class TestEngineDBExport:
 
         # Add mock positions and symbol_pnl data
         positions_data = {
-            'symbol': ['AAPL', 'MSFT', 'GOOGL'],
-            'quantity': [100, 50, 75],
-            'average_price': [150.0, 300.0, 2500.0],
-            'unrealized_pnl': [5000.0, 2500.0, 7500.0],
-            'realized_pnl': [1000.0, 500.0, 1500.0]
+            "symbol": ["AAPL", "MSFT", "GOOGL"],
+            "quantity": [100, 50, 75],
+            "average_price": [150.0, 300.0, 2500.0],
+            "unrealized_pnl": [5000.0, 2500.0, 7500.0],
+            "realized_pnl": [1000.0, 500.0, 1500.0],
         }
         engine.positions = pd.DataFrame(positions_data)
-        
+
         pnl_data = {
-            'symbol': ['AAPL', 'MSFT', 'GOOGL'],
-            'pnl': [6000.0, 3000.0, 9000.0]
+            "symbol": ["AAPL", "MSFT", "GOOGL"],
+            "pnl": [6000.0, 3000.0, 9000.0],
         }
         engine.symbol_pnl = pd.DataFrame(pnl_data)
 
@@ -193,7 +201,9 @@ class TestEngineDBExport:
 
         # Check that the export_backtest_results method was called with the right arguments
         call_args = mock_inserter.export_backtest_results.call_args[1]
-        assert call_args['run_id'] == 123
-        assert isinstance(call_args['equity_curve'], pd.Series)
-        assert call_args['final_positions'] is None  # Should be None when positions are excluded
-        assert call_args['symbol_pnl'] is None  # Should be None when PnL is excluded
+        assert call_args["run_id"] == 123
+        assert isinstance(call_args["equity_curve"], pd.Series)
+        assert (
+            call_args["final_positions"] is None
+        )  # Should be None when positions are excluded
+        assert call_args["symbol_pnl"] is None  # Should be None when PnL is excluded

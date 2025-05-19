@@ -1,6 +1,5 @@
 import logging
 import os
-from datetime import datetime
 
 logging.getLogger(__name__)
 
@@ -42,7 +41,9 @@ def setup_logging(level=None, log_file=None):
     console.setLevel(numeric_level)
 
     # Create formatter
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     console.setFormatter(formatter)
 
     # Add console handler to root logger

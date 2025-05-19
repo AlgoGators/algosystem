@@ -4,11 +4,8 @@ Test runner script for AlgoSystem.
 Provides various testing options and configurations.
 """
 
-import os
-import sys
-import pytest
 import subprocess
-from pathlib import Path
+import sys
 
 
 def run_tests(test_type="all", coverage=False, verbose=False, specific_test=None):
@@ -44,7 +41,12 @@ def run_tests(test_type="all", coverage=False, verbose=False, specific_test=None
     # Add coverage if requested
     if coverage:
         cmd.extend(
-            ["--cov=algosystem", "--cov-report=html", "--cov-report=term", "--cov-report=xml"]
+            [
+                "--cov=algosystem",
+                "--cov-report=html",
+                "--cov-report=term",
+                "--cov-report=xml",
+            ]
         )
 
     # Add verbosity
@@ -78,14 +80,22 @@ def run_linting():
 
     print("\nRunning flake8 (linting)...")
     flake8_result = subprocess.run(
-        ["flake8", "algosystem", "tests", "--max-line-length=88", "--extend-ignore=E203,W503"]
+        [
+            "flake8",
+            "algosystem",
+            "tests",
+            "--max-line-length=88",
+            "--extend-ignore=E203,W503",
+        ]
     )
 
     print("\nRunning mypy (type checking)...")
     mypy_result = subprocess.run(["mypy", "algosystem", "--ignore-missing-imports"])
 
     # Return overall result
-    return max(black_result.returncode, flake8_result.returncode, mypy_result.returncode)
+    return max(
+        black_result.returncode, flake8_result.returncode, mypy_result.returncode
+    )
 
 
 def run_performance_tests():
@@ -194,12 +204,20 @@ def main():
     )
     parser.add_argument("--coverage", action="store_true", help="Run with coverage")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
-    parser.add_argument("--lint", action="store_true", help="Run linting instead of tests")
-    parser.add_argument("--performance", action="store_true", help="Run performance tests")
+    parser.add_argument(
+        "--lint", action="store_true", help="Run linting instead of tests"
+    )
+    parser.add_argument(
+        "--performance", action="store_true", help="Run performance tests"
+    )
     parser.add_argument("--ci", action="store_true", help="Run CI test suite")
-    parser.add_argument("--report", action="store_true", help="Generate comprehensive test report")
+    parser.add_argument(
+        "--report", action="store_true", help="Generate comprehensive test report"
+    )
     parser.add_argument("--test", help="Specific test file or test to run")
-    parser.add_argument("--install-deps", action="store_true", help="Install test dependencies")
+    parser.add_argument(
+        "--install-deps", action="store_true", help="Install test dependencies"
+    )
 
     args = parser.parse_args()
 

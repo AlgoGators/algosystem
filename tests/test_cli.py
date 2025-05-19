@@ -1,9 +1,9 @@
-import pytest
-import tempfile
 import os
-import pandas as pd
-from unittest.mock import patch, MagicMock
+import tempfile
+from unittest.mock import MagicMock, patch
+
 from click.testing import CliRunner
+
 from algosystem.cli.commands import cli
 
 
@@ -78,7 +78,13 @@ class TestDashboardCommand:
         with tempfile.TemporaryDirectory() as temp_dir:
             result = self.runner.invoke(
                 cli,
-                ["dashboard", sample_csv_file, "--output-dir", temp_dir, "--use-default-config"],
+                [
+                    "dashboard",
+                    sample_csv_file,
+                    "--output-dir",
+                    temp_dir,
+                    "--use-default-config",
+                ],
             )
 
             # Check result
@@ -108,7 +114,14 @@ class TestDashboardCommand:
             # Run command with custom config
             result = self.runner.invoke(
                 cli,
-                ["dashboard", sample_csv_file, "--output-dir", temp_dir, "--config", config_path],
+                [
+                    "dashboard",
+                    sample_csv_file,
+                    "--output-dir",
+                    temp_dir,
+                    "--config",
+                    config_path,
+                ],
             )
 
             # Should complete without major errors
@@ -175,7 +188,9 @@ class TestLaunchCommand:
         with tempfile.TemporaryDirectory() as temp_dir:
             save_config_path = os.path.join(temp_dir, "save_config.json")
 
-            result = self.runner.invoke(cli, ["launch", "--save-config", save_config_path])
+            result = self.runner.invoke(
+                cli, ["launch", "--save-config", save_config_path]
+            )
 
             # Should set environment variable and start editor
             mock_start_editor.assert_called_once()
@@ -240,7 +255,9 @@ class TestConfigCommands:
                     import json
 
                     new_config = json.load(f)
-                    assert new_config["layout"]["title"] == base_config["layout"]["title"]
+                    assert (
+                        new_config["layout"]["title"] == base_config["layout"]["title"]
+                    )
 
     def test_show_config_existing_file(self):
         """Test show-config command with existing file."""
@@ -352,7 +369,9 @@ class TestCLIEdgeCases:
             with open(invalid_csv, "w") as f:
                 f.write("this,is,not,a,valid,csv\nfile,with,wrong,format")
 
-            result = self.runner.invoke(cli, ["dashboard", invalid_csv, "--use-default-config"])
+            result = self.runner.invoke(
+                cli, ["dashboard", invalid_csv, "--use-default-config"]
+            )
 
             # Should handle error gracefully
             assert result.exit_code != 0
@@ -363,12 +382,18 @@ class TestCLIEdgeCases:
         try:
             result = self.runner.invoke(
                 cli,
-                ["create-config", "/root/restricted_config.json"],  # Likely to fail on most systems
+                [
+                    "create-config",
+                    "/root/restricted_config.json",
+                ],  # Likely to fail on most systems
             )
 
             # Should handle permission error gracefully
             if result.exit_code != 0:
-                assert "error" in result.output.lower() or "permission" in result.output.lower()
+                assert (
+                    "error" in result.output.lower()
+                    or "permission" in result.output.lower()
+                )
         except:
             # Skip test if we can't test permission errors
             pass
@@ -421,7 +446,10 @@ class TestCLIIntegration:
                 result = self.runner.invoke(cli, cmd)
                 if result.exit_code == 0 and "version" in result.output.lower():
                     # Found version command
-                    assert "algosystem" in result.output.lower() or len(result.output.strip()) > 0
+                    assert (
+                        "algosystem" in result.output.lower()
+                        or len(result.output.strip()) > 0
+                    )
                     break
             except:
                 continue
@@ -438,7 +466,13 @@ class TestCLIIntegration:
         with tempfile.TemporaryDirectory() as temp_dir:
             result = self.runner.invoke(
                 cli,
-                ["dashboard", sample_csv_file, "--output-dir", temp_dir, "--use-default-config"],
+                [
+                    "dashboard",
+                    sample_csv_file,
+                    "--output-dir",
+                    temp_dir,
+                    "--use-default-config",
+                ],
             )
 
             # Should have attempted to create Engine and run dashboard
@@ -460,13 +494,21 @@ class TestCLIIntegration:
                 # Should display the config
                 if result2.exit_code == 0:
                     assert (
-                        "layout" in result2.output.lower() or "dashboard" in result2.output.lower()
+                        "layout" in result2.output.lower()
+                        or "dashboard" in result2.output.lower()
                     )
 
             # Step 3: Generate dashboard with custom config
             result3 = self.runner.invoke(
                 cli,
-                ["dashboard", sample_csv_file, "--output-dir", temp_dir, "--config", config_path],
+                [
+                    "dashboard",
+                    sample_csv_file,
+                    "--output-dir",
+                    temp_dir,
+                    "--config",
+                    config_path,
+                ],
             )
 
             # End-to-end may fail due to missing dependencies, but should not crash
@@ -482,11 +524,20 @@ class TestCLIIntegration:
         # Test invalid options
         result = self.runner.invoke(cli, ["dashboard", "--invalid-option"])
         assert result.exit_code != 0
-        assert "no such option" in result.output.lower() or "error" in result.output.lower()
+        assert (
+            "no such option" in result.output.lower()
+            or "error" in result.output.lower()
+        )
 
     def test_cli_help_consistency(self):
         """Test that all commands have consistent help format."""
-        commands = ["dashboard", "launch", "create-config", "show-config", "list-configs"]
+        commands = [
+            "dashboard",
+            "launch",
+            "create-config",
+            "show-config",
+            "list-configs",
+        ]
 
         for command in commands:
             result = self.runner.invoke(cli, [command, "--help"])

@@ -1,6 +1,6 @@
-import quantstats as qs
-import pandas as pd
 import numpy as np
+import pandas as pd
+import quantstats as qs
 
 
 def rolling_sharpe(returns, window=30):
@@ -59,7 +59,9 @@ def rolling_drawdown_duration(returns: pd.Series, window: int = 30) -> pd.Series
     # 3. Convert that into a "current streak" series
     #    Group by cumulative sum of zeros to reset count on non‑underwater days
     group_id = (underwater == 0).cumsum()
-    streak = underwater.groupby(group_id).cumcount() + 1  # counts 1,2,3… on underwater days
+    streak = (
+        underwater.groupby(group_id).cumcount() + 1
+    )  # counts 1,2,3… on underwater days
     streak = streak.where(underwater == 1, 0)  # but zero out non‑underwater days
 
     # 4. Rolling maximum streak length
@@ -133,7 +135,9 @@ def calculate_time_series_data(strategy, benchmark=None, window=30):
 
     time_series["rolling_sharpe"] = rolling_sharpe(strategy_returns, long_window)
     time_series["rolling_sortino"] = rolling_sortino(strategy_returns, long_window)
-    time_series["rolling_volatility"] = rolling_volatility(strategy_returns, long_window)
+    time_series["rolling_volatility"] = rolling_volatility(
+        strategy_returns, long_window
+    )
     time_series["rolling_skew"] = rolling_skew(strategy_returns, long_window)
     time_series["rolling_var"] = rolling_var(strategy_returns, long_window)
     time_series["rolling_drawdown_duration"] = rolling_drawdown_duration(
@@ -230,7 +234,9 @@ def calculate_metrics(strategy, benchmark=None):
     try:
         metrics["max_drawdown"] = qs.stats.max_drawdown(strategy_returns)
         metrics["var_95"] = qs.stats.value_at_risk(strategy_returns, cutoff=0.05)
-        metrics["cvar_95"] = qs.stats.conditional_value_at_risk(strategy_returns, cutoff=0.05)
+        metrics["cvar_95"] = qs.stats.conditional_value_at_risk(
+            strategy_returns, cutoff=0.05
+        )
         metrics["skewness"] = strategy_returns.skew()
     except Exception as e:
         metrics["risk_metrics_error"] = str(e)
@@ -249,7 +255,9 @@ def calculate_metrics(strategy, benchmark=None):
     metrics["pct_positive_days"] = (strategy_returns > 0).mean()
 
     # Monthly statistics
-    monthly_returns = strategy_returns.resample("ME").apply(lambda x: (1 + x).prod() - 1)
+    monthly_returns = strategy_returns.resample("ME").apply(
+        lambda x: (1 + x).prod() - 1
+    )
     metrics["best_month"] = monthly_returns.max()
     metrics["worst_month"] = monthly_returns.min()
     metrics["avg_monthly_return"] = monthly_returns.mean()
@@ -259,10 +267,16 @@ def calculate_metrics(strategy, benchmark=None):
     # Calculate additional benchmark-dependent metrics if benchmark is provided
     if benchmark_returns is not None:
         try:
-            metrics["alpha"] = qs.stats.greeks(strategy_returns, benchmark_returns)["alpha"]
-            metrics["beta"] = qs.stats.greeks(strategy_returns, benchmark_returns)["beta"]
+            metrics["alpha"] = qs.stats.greeks(strategy_returns, benchmark_returns)[
+                "alpha"
+            ]
+            metrics["beta"] = qs.stats.greeks(strategy_returns, benchmark_returns)[
+                "beta"
+            ]
             metrics["correlation"] = strategy_returns.corr(benchmark_returns)
-            metrics["tracking_error"] = qs.stats.greeks(strategy_returns, benchmark_returns)["risk"]
+            metrics["tracking_error"] = qs.stats.greeks(
+                strategy_returns, benchmark_returns
+            )["risk"]
             metrics["information_ratio"] = qs.stats.information_ratio(
                 strategy_returns, benchmark_returns
             )

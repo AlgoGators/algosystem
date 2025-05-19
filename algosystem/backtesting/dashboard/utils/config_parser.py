@@ -21,7 +21,9 @@ def validate_config(config):
     required_sections = ["metrics", "charts", "layout"]
     for section in required_sections:
         if section not in config:
-            raise ValueError(f"Missing required section '{section}' in dashboard configuration")
+            raise ValueError(
+                f"Missing required section '{section}' in dashboard configuration"
+            )
 
     # Validate metrics
     validate_components(config["metrics"], "metrics")
@@ -74,7 +76,9 @@ def validate_components(components, component_type):
         # Check required fields
         for field in required_fields:
             if field not in component:
-                raise ValueError(f"Missing required field '{field}' in {component_type}[{i}]")
+                raise ValueError(
+                    f"Missing required field '{field}' in {component_type}[{i}]"
+                )
 
         # Check for duplicate IDs
         if component["id"] in ids:
@@ -105,14 +109,20 @@ def validate_position(position, context):
     required_fields = ["row", "col"]
     for field in required_fields:
         if field not in position:
-            raise ValueError(f"Missing required field '{field}' in position of {context}")
+            raise ValueError(
+                f"Missing required field '{field}' in position of {context}"
+            )
 
     # Check that row and col are non-negative integers
     if not isinstance(position["row"], int) or position["row"] < 0:
-        raise ValueError(f"'row' must be a non-negative integer in position of {context}")
+        raise ValueError(
+            f"'row' must be a non-negative integer in position of {context}"
+        )
 
     if not isinstance(position["col"], int) or position["col"] < 0:
-        raise ValueError(f"'col' must be a non-negative integer in position of {context}")
+        raise ValueError(
+            f"'col' must be a non-negative integer in position of {context}"
+        )
 
 
 def validate_layout(layout):

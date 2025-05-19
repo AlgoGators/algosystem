@@ -1,7 +1,7 @@
 # File: algosystem/backtesting/dashboard/utils/default_config.py
 
-import os
 import json
+import os
 
 # Path to the default configuration
 DEFAULT_CONFIG_PATH = os.path.abspath(
@@ -62,7 +62,10 @@ def get_default_config():
                     "title": "Drawdown Chart",
                     "data_key": "drawdown",
                     "position": {"row": 1, "col": 1},
-                    "config": {"y_axis_label": "Drawdown (%)", "percentage_format": True},
+                    "config": {
+                        "y_axis_label": "Drawdown (%)",
+                        "percentage_format": True,
+                    },
                 },
             ],
             "layout": {"max_cols": 2, "title": "AlgoSystem Trading Dashboard"},

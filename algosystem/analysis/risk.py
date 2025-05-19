@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 from scipy import stats
 
 
@@ -109,7 +108,9 @@ def calculate_risk_metrics(returns, risk_free_rate=0.0, periods_per_year=252):
     # Downside deviation (semi-standard deviation)
     downside_returns = returns[returns < 0]
     downside_deviation = (
-        downside_returns.std() * np.sqrt(periods_per_year) if len(downside_returns) > 0 else 0
+        downside_returns.std() * np.sqrt(periods_per_year)
+        if len(downside_returns) > 0
+        else 0
     )
 
     # Maximum drawdown
@@ -121,7 +122,9 @@ def calculate_risk_metrics(returns, risk_free_rate=0.0, periods_per_year=252):
     # Ratios
     sharpe_ratio = (ann_return - risk_free_rate) / volatility if volatility != 0 else 0
     sortino_ratio = (
-        (ann_return - risk_free_rate) / downside_deviation if downside_deviation != 0 else 0
+        (ann_return - risk_free_rate) / downside_deviation
+        if downside_deviation != 0
+        else 0
     )
 
     # VaR and CVaR

@@ -3,24 +3,25 @@ Enhanced CLI with benchmark support for AlgoSystem.
 This module extends the existing CLI to support benchmark aliases and automatic data downloading.
 """
 
+import json
 import os
 import sys
-import click
-import json
-import pandas as pd
-import numpy as np
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime
+
+import click
+import numpy as np
+import pandas as pd
 
 # Add parent directory to path to allow direct script execution
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import benchmark functionality
 from algosystem.data.benchmark import (
-    fetch_benchmark_data,
-    get_benchmark_list,
-    get_benchmark_info,
     DEFAULT_BENCHMARK,
+    fetch_benchmark_data,
+    get_benchmark_info,
+    get_benchmark_list,
 )
 
 # Define user config directory and file
@@ -81,13 +82,17 @@ def ensure_user_config_exists():
         if config_valid:
             for metric in user_config["metrics"]:
                 if not all(
-                    key in metric for key in ["id", "type", "title", "value_key", "position"]
+                    key in metric
+                    for key in ["id", "type", "title", "value_key", "position"]
                 ):
                     config_valid = False
                     break
 
             for chart in user_config["charts"]:
-                if not all(key in chart for key in ["id", "type", "title", "data_key", "position"]):
+                if not all(
+                    key in chart
+                    for key in ["id", "type", "title", "data_key", "position"]
+                ):
                     config_valid = False
                     break
 
@@ -97,12 +102,10 @@ def ensure_user_config_exists():
         else:
             # Invalid config - reset to default
             click.echo(
-                f"Warning: User configuration file is invalid. Resetting to default settings."
+                "Warning: User configuration file is invalid. Resetting to default settings."
             )
             # Backup the old config
-            backup_file = (
-                f"{USER_CONFIG_FILE}.backup.{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
-            )
+            backup_file = f"{USER_CONFIG_FILE}.backup.{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
             os.rename(USER_CONFIG_FILE, backup_file)
             click.echo(f"Old configuration backed up to: {backup_file}")
 
@@ -118,7 +121,9 @@ def ensure_user_config_exists():
             f"Warning: Cannot read user configuration file ({str(e)}). Resetting to default settings."
         )
         # Backup the old config
-        backup_file = f"{USER_CONFIG_FILE}.backup.{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
+        backup_file = (
+            f"{USER_CONFIG_FILE}.backup.{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
+        )
         if os.path.exists(USER_CONFIG_FILE):
             os.rename(USER_CONFIG_FILE, backup_file)
             click.echo(f"Old configuration backed up to: {backup_file}")
@@ -161,7 +166,9 @@ def cli():
     default=5000,
     help="Port to run the dashboard editor server on (default: 5000)",
 )
-@click.option("--debug", is_flag=True, default=False, help="Run the server in debug mode")
+@click.option(
+    "--debug", is_flag=True, default=False, help="Run the server in debug mode"
+)
 @click.option(
     "--save-config",
     type=click.Path(),
@@ -184,7 +191,9 @@ def launch(config, data_dir, host, port, debug, save_config, default):
     # Determine which configuration to use
     if default:
         # Use library default config
-        from algosystem.backtesting.dashboard.utils.default_config import DEFAULT_CONFIG_PATH
+        from algosystem.backtesting.dashboard.utils.default_config import (
+            DEFAULT_CONFIG_PATH,
+        )
 
         os.environ["ALGO_DASHBOARD_CONFIG"] = DEFAULT_CONFIG_PATH
         click.echo("Using library default configuration")
@@ -211,7 +220,9 @@ def launch(config, data_dir, host, port, debug, save_config, default):
         # If no save-config specified and using user config, save back to user config
         if not default and not config:
             os.environ["ALGO_DASHBOARD_SAVE_CONFIG"] = USER_CONFIG_FILE
-            click.echo(f"Changes will be saved to user configuration: {USER_CONFIG_FILE}")
+            click.echo(
+                f"Changes will be saved to user configuration: {USER_CONFIG_FILE}"
+            )
 
     if data_dir:
         os.environ["ALGO_DASHBOARD_DATA_DIR"] = os.path.abspath(data_dir)
@@ -257,7 +268,8 @@ def launch(config, data_dir, host, port, debug, save_config, default):
     help="Start date for the backtest (YYYY-MM-DD). Default: first date in input data",
 )
 @click.option(
-    "--end-date", help="End date for the backtest (YYYY-MM-DD). Default: last date in input data"
+    "--end-date",
+    help="End date for the backtest (YYYY-MM-DD). Default: last date in input data",
 )
 @click.option(
     "--open-browser",
@@ -293,10 +305,8 @@ def render(
 
     INPUT_FILE: Path to a CSV file with strategy data
     """
-    import json
-    import webbrowser
-    from algosystem.backtesting.engine import Engine
     from algosystem.backtesting.dashboard.dashboard_generator import generate_dashboard
+    from algosystem.backtesting.engine import Engine
 
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
@@ -305,7 +315,9 @@ def render(
     config_path = None
     if default:
         click.echo("Using library default dashboard configuration")
-        from algosystem.backtesting.dashboard.utils.default_config import DEFAULT_CONFIG_PATH
+        from algosystem.backtesting.dashboard.utils.default_config import (
+            DEFAULT_CONFIG_PATH,
+        )
 
         config_path = DEFAULT_CONFIG_PATH
     elif config:
@@ -341,7 +353,10 @@ def render(
             if os.path.exists(benchmark):
                 click.echo(f"Loading benchmark data from file: {benchmark}...")
                 benchmark_data = pd.read_csv(benchmark, index_col=0, parse_dates=True)
-                if isinstance(benchmark_data, pd.DataFrame) and benchmark_data.shape[1] > 1:
+                if (
+                    isinstance(benchmark_data, pd.DataFrame)
+                    and benchmark_data.shape[1] > 1
+                ):
                     benchmark_data = benchmark_data.iloc[:, 0]  # Use first column
                 click.echo(f"Loaded benchmark data with {len(benchmark_data)} rows")
             else:
@@ -366,14 +381,16 @@ def render(
         elif not benchmark:
             # If no benchmark specified, use S&P 500 by default
             try:
-                click.echo(f"Loading default benchmark (S&P 500)...")
+                click.echo("Loading default benchmark (S&P 500)...")
                 benchmark_data = fetch_benchmark_data(
                     DEFAULT_BENCHMARK,
                     start_date=data.index[0] if not start_date else start_date,
                     end_date=data.index[-1] if not end_date else end_date,
                     force_refresh=force_refresh,
                 )
-                click.echo(f"Loaded S&P 500 benchmark data with {len(benchmark_data)} rows")
+                click.echo(
+                    f"Loaded S&P 500 benchmark data with {len(benchmark_data)} rows"
+                )
             except ImportError:
                 click.echo(
                     "Warning: Could not import benchmark module. Make sure the 'yfinance' package is installed."
@@ -393,7 +410,10 @@ def render(
 
         # Initialize and run the engine
         engine = Engine(
-            data=price_data, benchmark=benchmark_data, start_date=start_date, end_date=end_date
+            data=price_data,
+            benchmark=benchmark_data,
+            start_date=start_date,
+            end_date=end_date,
         )
         results = engine.run()
         click.echo("Backtest completed successfully")
@@ -401,7 +421,10 @@ def render(
         # Generate dashboard
         click.echo(f"Generating dashboard using configuration from: {config_path}")
         dashboard_path = generate_dashboard(
-            engine=engine, output_dir=output_dir, open_browser=open_browser, config_path=config_path
+            engine=engine,
+            output_dir=output_dir,
+            open_browser=open_browser,
+            config_path=config_path,
         )
 
         click.echo(f"Dashboard generated successfully at: {dashboard_path}")
@@ -433,7 +456,10 @@ def render(
     help="Create config based on library default configuration",
 )
 @click.option(
-    "--user", is_flag=True, default=False, help="Create config based on user configuration"
+    "--user",
+    is_flag=True,
+    default=False,
+    help="Create config based on user configuration",
 )
 def create_config(output_path, based_on, default, user):
     """
@@ -444,7 +470,9 @@ def create_config(output_path, based_on, default, user):
     # Load the base configuration
     if default:
         # Load the library default configuration
-        from algosystem.backtesting.dashboard.utils.default_config import DEFAULT_CONFIG_PATH
+        from algosystem.backtesting.dashboard.utils.default_config import (
+            DEFAULT_CONFIG_PATH,
+        )
 
         click.echo("Creating configuration based on library default template")
         with open(DEFAULT_CONFIG_PATH, "r") as f:
@@ -470,7 +498,9 @@ def create_config(output_path, based_on, default, user):
             with open(USER_CONFIG_FILE, "r") as f:
                 config = json.load(f)
         else:
-            from algosystem.backtesting.dashboard.utils.default_config import DEFAULT_CONFIG_PATH
+            from algosystem.backtesting.dashboard.utils.default_config import (
+                DEFAULT_CONFIG_PATH,
+            )
 
             click.echo("Creating configuration based on library default template")
             with open(DEFAULT_CONFIG_PATH, "r") as f:
@@ -508,7 +538,8 @@ def create_config(output_path, based_on, default, user):
     help="Start date for the backtest (YYYY-MM-DD). Default: first date in input data",
 )
 @click.option(
-    "--end-date", help="End date for the backtest (YYYY-MM-DD). Default: last date in input data"
+    "--end-date",
+    help="End date for the backtest (YYYY-MM-DD). Default: last date in input data",
 )
 @click.option(
     "--config",
@@ -551,14 +582,19 @@ def dashboard(
     INPUT_FILE: Path to a CSV file with strategy data
     """
     import webbrowser
+
+    from algosystem.backtesting.dashboard.dashboard_generator import (
+        generate_standalone_dashboard,
+    )
     from algosystem.backtesting.engine import Engine
-    from algosystem.backtesting.dashboard.dashboard_generator import generate_standalone_dashboard
 
     # Determine which configuration to use
     config_path = None
     if default:
         click.echo("Using library default dashboard configuration")
-        from algosystem.backtesting.dashboard.utils.default_config import DEFAULT_CONFIG_PATH
+        from algosystem.backtesting.dashboard.utils.default_config import (
+            DEFAULT_CONFIG_PATH,
+        )
 
         config_path = DEFAULT_CONFIG_PATH
     elif config:
@@ -594,7 +630,10 @@ def dashboard(
             if os.path.exists(benchmark):
                 click.echo(f"Loading benchmark data from file: {benchmark}...")
                 benchmark_data = pd.read_csv(benchmark, index_col=0, parse_dates=True)
-                if isinstance(benchmark_data, pd.DataFrame) and benchmark_data.shape[1] > 1:
+                if (
+                    isinstance(benchmark_data, pd.DataFrame)
+                    and benchmark_data.shape[1] > 1
+                ):
                     benchmark_data = benchmark_data.iloc[:, 0]  # Use first column
                 click.echo(f"Loaded benchmark data with {len(benchmark_data)} rows")
             else:
@@ -619,14 +658,16 @@ def dashboard(
         elif not benchmark:
             # If no benchmark specified, use S&P 500 by default
             try:
-                click.echo(f"Loading default benchmark (S&P 500)...")
+                click.echo("Loading default benchmark (S&P 500)...")
                 benchmark_data = fetch_benchmark_data(
                     DEFAULT_BENCHMARK,
                     start_date=data.index[0] if not start_date else start_date,
                     end_date=data.index[-1] if not end_date else end_date,
                     force_refresh=force_refresh,
                 )
-                click.echo(f"Loaded S&P 500 benchmark data with {len(benchmark_data)} rows")
+                click.echo(
+                    f"Loaded S&P 500 benchmark data with {len(benchmark_data)} rows"
+                )
             except ImportError:
                 click.echo(
                     "Warning: Could not import benchmark module. Make sure the 'yfinance' package is installed."
@@ -646,13 +687,18 @@ def dashboard(
 
         # Initialize and run the engine
         engine = Engine(
-            data=price_data, benchmark=benchmark_data, start_date=start_date, end_date=end_date
+            data=price_data,
+            benchmark=benchmark_data,
+            start_date=start_date,
+            end_date=end_date,
         )
         results = engine.run()
         click.echo("Backtest completed successfully")
 
         # Generate standalone dashboard
-        click.echo(f"Generating standalone dashboard using configuration from: {config_path}")
+        click.echo(
+            f"Generating standalone dashboard using configuration from: {config_path}"
+        )
         dashboard_path = generate_standalone_dashboard(
             engine=engine, output_path=output_file, config_path=config_path
         )
@@ -699,7 +745,7 @@ def show_config(config_file):
             click.echo("=== Metrics ===")
             for i, metric in enumerate(config["metrics"]):
                 click.echo(
-                    f"{i+1}. {metric.get('title', 'Untitled')} ({metric.get('id', 'no-id')})"
+                    f"{i + 1}. {metric.get('title', 'Untitled')} ({metric.get('id', 'no-id')})"
                 )
                 click.echo(f"   Type: {metric.get('type', 'N/A')}")
                 click.echo(
@@ -711,7 +757,9 @@ def show_config(config_file):
         if "charts" in config:
             click.echo("=== Charts ===")
             for i, chart in enumerate(config["charts"]):
-                click.echo(f"{i+1}. {chart.get('title', 'Untitled')} ({chart.get('id', 'no-id')})")
+                click.echo(
+                    f"{i + 1}. {chart.get('title', 'Untitled')} ({chart.get('id', 'no-id')})"
+                )
                 click.echo(f"   Type: {chart.get('type', 'N/A')}")
                 click.echo(f"   Data Key: {chart.get('data_key', 'N/A')}")
                 click.echo(
@@ -726,7 +774,10 @@ def show_config(config_file):
 
 @cli.command()
 @click.option(
-    "--show-user", is_flag=True, default=False, help="Show full path of user configuration file"
+    "--show-user",
+    is_flag=True,
+    default=False,
+    help="Show full path of user configuration file",
 )
 @click.option(
     "--show-default",
@@ -745,7 +796,9 @@ def list_configs(show_user, show_default):
         return
 
     if show_default:
-        from algosystem.backtesting.dashboard.utils.default_config import DEFAULT_CONFIG_PATH
+        from algosystem.backtesting.dashboard.utils.default_config import (
+            DEFAULT_CONFIG_PATH,
+        )
 
         click.echo(f"Library default configuration: {DEFAULT_CONFIG_PATH}")
         return
@@ -773,7 +826,9 @@ def list_configs(show_user, show_default):
 
         # Mark the main user config file
         marker = " (user config)" if config_file == "config.json" else ""
-        click.echo(f"{i+1}. {config_file}{marker} ({file_size:.1f} KB, modified: {mod_time_str})")
+        click.echo(
+            f"{i + 1}. {config_file}{marker} ({file_size:.1f} KB, modified: {mod_time_str})"
+        )
 
     # Show paths to special files
     click.echo(f"\nUser configuration: {USER_CONFIG_FILE}")
@@ -789,7 +844,10 @@ def list_configs(show_user, show_default):
     help="Create a backup of existing user configuration (default: True)",
 )
 @click.option(
-    "--no-backup", is_flag=True, default=False, help="Do not create a backup (overrides --backup)"
+    "--no-backup",
+    is_flag=True,
+    default=False,
+    help="Do not create a backup (overrides --backup)",
 )
 def reset_user_config(backup, no_backup):
     """
@@ -810,7 +868,9 @@ def reset_user_config(backup, no_backup):
     # Create backup if requested
     create_backup = backup and not no_backup
     if create_backup:
-        backup_file = f"{USER_CONFIG_FILE}.backup.{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
+        backup_file = (
+            f"{USER_CONFIG_FILE}.backup.{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
+        )
         os.rename(USER_CONFIG_FILE, backup_file)
         click.echo(f"Backup created: {backup_file}")
 
@@ -828,7 +888,10 @@ def reset_user_config(backup, no_backup):
 # Add a new command to list and manage benchmarks
 @cli.command()
 @click.option(
-    "--fetch-all", is_flag=True, default=False, help="Fetch or update all available benchmarks"
+    "--fetch-all",
+    is_flag=True,
+    default=False,
+    help="Fetch or update all available benchmarks",
 )
 @click.option(
     "--force-refresh",
@@ -843,9 +906,12 @@ def reset_user_config(backup, no_backup):
     help="Show detailed information about all available benchmarks",
 )
 @click.option(
-    "--start-date", help="Start date for benchmark data (YYYY-MM-DD). Default: 5 years ago"
+    "--start-date",
+    help="Start date for benchmark data (YYYY-MM-DD). Default: 5 years ago",
 )
-@click.option("--end-date", help="End date for benchmark data (YYYY-MM-DD). Default: today")
+@click.option(
+    "--end-date", help="End date for benchmark data (YYYY-MM-DD). Default: today"
+)
 @click.argument("benchmark", required=False)
 def benchmarks(fetch_all, force_refresh, info, start_date, end_date, benchmark):
     """
@@ -877,8 +943,12 @@ def benchmarks(fetch_all, force_refresh, info, start_date, end_date, benchmark):
                     click.echo("")
 
                 click.echo(f"Total benchmarks available: {len(benchmark_info)}")
-                click.echo("Use 'algosystem benchmarks <alias>' to fetch a specific benchmark.")
-                click.echo("Use 'algosystem benchmarks --fetch-all' to fetch all benchmarks.")
+                click.echo(
+                    "Use 'algosystem benchmarks <alias>' to fetch a specific benchmark."
+                )
+                click.echo(
+                    "Use 'algosystem benchmarks --fetch-all' to fetch all benchmarks."
+                )
                 return
             except ImportError:
                 click.echo(
@@ -902,8 +972,12 @@ def benchmarks(fetch_all, force_refresh, info, start_date, end_date, benchmark):
                     click.echo("  " + "".join(alias.ljust(col_width) for alias in row))
 
                 click.echo(f"\nTotal: {len(benchmark_list)} benchmarks available")
-                click.echo("\nUse 'algosystem benchmarks --info' for detailed descriptions.")
-                click.echo("Use 'algosystem benchmarks <alias>' to fetch a specific benchmark.")
+                click.echo(
+                    "\nUse 'algosystem benchmarks --info' for detailed descriptions."
+                )
+                click.echo(
+                    "Use 'algosystem benchmarks <alias>' to fetch a specific benchmark."
+                )
                 return
             except ImportError:
                 click.echo(
@@ -919,10 +993,14 @@ def benchmarks(fetch_all, force_refresh, info, start_date, end_date, benchmark):
                 from algosystem.data.benchmark import fetch_all_benchmarks
 
                 benchmarks = fetch_all_benchmarks(
-                    start_date=start_date, end_date=end_date, force_refresh=force_refresh
+                    start_date=start_date,
+                    end_date=end_date,
+                    force_refresh=force_refresh,
                 )
 
-                click.echo(f"Successfully fetched data for {len(benchmarks)} benchmarks.")
+                click.echo(
+                    f"Successfully fetched data for {len(benchmarks)} benchmarks."
+                )
                 return
             except ImportError:
                 click.echo(
@@ -936,7 +1014,10 @@ def benchmarks(fetch_all, force_refresh, info, start_date, end_date, benchmark):
             try:
                 click.echo(f"Fetching data for benchmark: {benchmark}")
                 benchmark_data = fetch_benchmark_data(
-                    benchmark, start_date=start_date, end_date=end_date, force_refresh=force_refresh
+                    benchmark,
+                    start_date=start_date,
+                    end_date=end_date,
+                    force_refresh=force_refresh,
                 )
 
                 # Print benchmark info
@@ -977,11 +1058,18 @@ def benchmarks(fetch_all, force_refresh, info, start_date, end_date, benchmark):
 # Add a command to compare benchmarks
 @cli.command()
 @click.argument("benchmarks", nargs=-1, required=True)
-@click.option("--output-file", "-o", type=click.Path(), help="Save comparison results to CSV file")
-@click.option("--start-date", help="Start date for comparison (YYYY-MM-DD). Default: 5 years ago")
+@click.option(
+    "--output-file", "-o", type=click.Path(), help="Save comparison results to CSV file"
+)
+@click.option(
+    "--start-date", help="Start date for comparison (YYYY-MM-DD). Default: 5 years ago"
+)
 @click.option("--end-date", help="End date for comparison (YYYY-MM-DD). Default: today")
 @click.option(
-    "--metrics", is_flag=True, default=False, help="Show performance metrics for each benchmark"
+    "--metrics",
+    is_flag=True,
+    default=False,
+    help="Show performance metrics for each benchmark",
 )
 @click.option(
     "--force-refresh",
@@ -989,7 +1077,9 @@ def benchmarks(fetch_all, force_refresh, info, start_date, end_date, benchmark):
     default=False,
     help="Force refresh of benchmark data even if cached data exists",
 )
-def compare_benchmarks(benchmarks, output_file, start_date, end_date, metrics, force_refresh):
+def compare_benchmarks(
+    benchmarks, output_file, start_date, end_date, metrics, force_refresh
+):
     """
     Compare multiple benchmarks over the same period.
 
@@ -1008,7 +1098,9 @@ def compare_benchmarks(benchmarks, output_file, start_date, end_date, metrics, f
 
         # Get comparison data
         click.echo(f"Comparing benchmarks: {', '.join(benchmarks)}")
-        comparison_df = compare_benchmarks(benchmarks, start_date=start_date, end_date=end_date)
+        comparison_df = compare_benchmarks(
+            benchmarks, start_date=start_date, end_date=end_date
+        )
 
         # Print basic info
         click.echo(
@@ -1024,7 +1116,9 @@ def compare_benchmarks(benchmarks, output_file, start_date, end_date, metrics, f
             ) - 1
 
         # Sort by total return
-        sorted_benchmarks = sorted(total_returns.items(), key=lambda x: x[1], reverse=True)
+        sorted_benchmarks = sorted(
+            total_returns.items(), key=lambda x: x[1], reverse=True
+        )
 
         # Print total returns
         click.echo("\nTotal Returns:")
@@ -1046,14 +1140,17 @@ def compare_benchmarks(benchmarks, output_file, start_date, end_date, metrics, f
                         {
                             "Benchmark": alias,
                             "Total Return": benchmark_metrics["total_return"] * 100,
-                            "Annual Return": benchmark_metrics["annualized_return"] * 100,
+                            "Annual Return": benchmark_metrics["annualized_return"]
+                            * 100,
                             "Volatility": benchmark_metrics["volatility"] * 100,
                             "Sharpe Ratio": benchmark_metrics["sharpe_ratio"],
                             "Max Drawdown": benchmark_metrics["max_drawdown"] * 100,
                         }
                     )
                 except Exception as e:
-                    click.echo(f"Warning: Could not calculate metrics for {alias}: {str(e)}")
+                    click.echo(
+                        f"Warning: Could not calculate metrics for {alias}: {str(e)}"
+                    )
 
             # Print metrics table
             if metrics_list:
@@ -1071,7 +1168,9 @@ def compare_benchmarks(benchmarks, output_file, start_date, end_date, metrics, f
             click.echo(f"\nComparison data saved to: {output_file}")
 
     except ImportError:
-        click.echo("Error: Benchmark module not available. Make sure yfinance is installed:")
+        click.echo(
+            "Error: Benchmark module not available. Make sure yfinance is installed:"
+        )
         click.echo("  pip install yfinance")
         sys.exit(1)
     except Exception as e:
@@ -1097,7 +1196,9 @@ def compare_benchmarks(benchmarks, output_file, start_date, end_date, metrics, f
     default=252,
     help="Number of trading days to simulate (default: 252 = 1 year)",
 )
-@click.option("--benchmark", "-b", help="Benchmark to use for comparison", default="sp500")
+@click.option(
+    "--benchmark", "-b", help="Benchmark to use for comparison", default="sp500"
+)
 @click.option(
     "--open-browser",
     is_flag=True,
@@ -1111,11 +1212,12 @@ def test(output_dir, periods, benchmark, open_browser):
     This is useful for testing the system without having real data.
     It creates a simulated strategy and benchmark, then generates a dashboard.
     """
-    import numpy as np
     import os
-    import webbrowser
-    from algosystem.backtesting.engine import Engine
+
+    import numpy as np
+
     from algosystem.backtesting.dashboard.dashboard_generator import generate_dashboard
+    from algosystem.backtesting.engine import Engine
 
     click.echo(f"Creating test data with {periods} trading days...")
 
@@ -1127,7 +1229,9 @@ def test(output_dir, periods, benchmark, open_browser):
     np.random.seed(42)  # For reproducibility
 
     # Strategy returns with positive drift
-    returns = np.random.normal(0.0005, 0.01, periods)  # 0.05% daily return, 1% volatility
+    returns = np.random.normal(
+        0.0005, 0.01, periods
+    )  # 0.05% daily return, 1% volatility
     strategy_prices = 100 * (1 + pd.Series(returns, index=dates)).cumprod()
 
     # Save strategy data to CSV
@@ -1139,7 +1243,9 @@ def test(output_dir, periods, benchmark, open_browser):
     benchmark_data = None
     try:
         click.echo(f"Loading benchmark data for {benchmark}...")
-        benchmark_data = fetch_benchmark_data(benchmark, start_date=dates[0], end_date=dates[-1])
+        benchmark_data = fetch_benchmark_data(
+            benchmark, start_date=dates[0], end_date=dates[-1]
+        )
         click.echo(f"Loaded benchmark data with {len(benchmark_data)} rows")
     except Exception as e:
         click.echo(f"Warning: Error fetching benchmark data: {str(e)}")
@@ -1153,13 +1259,13 @@ def test(output_dir, periods, benchmark, open_browser):
     # Print some basic metrics
     metrics = results["metrics"]
     click.echo("\nBacktest Results:")
-    click.echo(f"Total Return: {metrics.get('total_return', 0)*100:.2f}%")
-    click.echo(f"Annualized Return: {metrics.get('annualized_return', 0)*100:.2f}%")
-    click.echo(f"Max Drawdown: {metrics.get('max_drawdown', 0)*100:.2f}%")
+    click.echo(f"Total Return: {metrics.get('total_return', 0) * 100:.2f}%")
+    click.echo(f"Annualized Return: {metrics.get('annualized_return', 0) * 100:.2f}%")
+    click.echo(f"Max Drawdown: {metrics.get('max_drawdown', 0) * 100:.2f}%")
     click.echo(f"Sharpe Ratio: {metrics.get('sharpe_ratio', 0):.2f}")
 
     if "alpha" in metrics:
-        click.echo(f"Alpha: {metrics.get('alpha', 0)*100:.2f}%")
+        click.echo(f"Alpha: {metrics.get('alpha', 0) * 100:.2f}%")
     if "beta" in metrics:
         click.echo(f"Beta: {metrics.get('beta', 0):.2f}")
 
@@ -1172,7 +1278,7 @@ def test(output_dir, periods, benchmark, open_browser):
     click.echo(f"Dashboard generated at: {dashboard_path}")
 
     if not open_browser:
-        click.echo(f"To view the dashboard, open this file in a web browser:")
+        click.echo("To view the dashboard, open this file in a web browser:")
         click.echo(f"  {os.path.abspath(dashboard_path)}")
 
     return dashboard_path

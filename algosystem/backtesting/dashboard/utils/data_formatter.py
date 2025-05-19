@@ -1,6 +1,7 @@
-import pandas as pd
-import numpy as np
 from datetime import datetime
+
+import numpy as np
+import pandas as pd
 
 
 def prepare_dashboard_data(engine, config):
@@ -28,7 +29,8 @@ def prepare_dashboard_data(engine, config):
             "title": config["layout"]["title"],
             "start_date": engine.start_date.strftime("%Y-%m-%d"),
             "end_date": engine.end_date.strftime("%Y-%m-%d"),
-            "total_return": float(engine.results.get("returns", 0)) * 100,  # Convert to percentage
+            "total_return": float(engine.results.get("returns", 0))
+            * 100,  # Convert to percentage
             "initial_capital": float(engine.results.get("initial_capital", 0)),
             "final_capital": float(engine.results.get("final_capital", 0)),
             "run_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -294,7 +296,20 @@ def format_heatmap_table_data(series, chart_config):
     years = sorted(list(years))
 
     # Define months
-    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+    ]
 
     return {"years": years, "months": months, "data": monthly_data}
 

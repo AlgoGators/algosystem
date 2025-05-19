@@ -1,9 +1,9 @@
-import pytest
-import pandas as pd
-import numpy as np
-import tempfile
 import os
-from datetime import datetime, timedelta
+import tempfile
+
+import numpy as np
+import pandas as pd
+import pytest
 
 
 @pytest.fixture
@@ -36,7 +36,9 @@ def sample_dataframe():
     data = pd.DataFrame(
         {
             "Strategy": 100
-            * (1 + pd.Series(np.random.normal(0.001, 0.02, 100), index=dates)).cumprod(),
+            * (
+                1 + pd.Series(np.random.normal(0.001, 0.02, 100), index=dates)
+            ).cumprod(),
             "Other_Column": np.random.normal(0, 1, 100),
         },
         index=dates,
