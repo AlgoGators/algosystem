@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
-import os
 import json
+import logging
+import os
 import sys
 import tempfile
 import traceback
-import logging
+
+from flask import Flask, jsonify
 
 # Set up basic logging
 logging.basicConfig(
@@ -14,12 +15,12 @@ logger = logging.getLogger(__name__)
 
 # Add the parent directory to the path
 sys.path.append(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    )
 )
 
 # Import AlgoSystem modules
-from algosystem.backtesting.dashboard.dashboard_generator import generate_dashboard
-from algosystem.backtesting.engine import Engine
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = tempfile.mkdtemp()
@@ -28,7 +29,9 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max upload
 # Path to the default configuration
 DEFAULT_CONFIG_PATH = os.path.abspath(
     os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "utils", "default_config.json"
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "utils",
+        "default_config.json",
     )
 )
 
@@ -46,7 +49,9 @@ SAVE_CONFIG_PATH = os.environ.get("ALGO_DASHBOARD_SAVE_CONFIG")
 if SAVE_CONFIG_PATH:
     # If --save-config was specified, use it for both loading and saving
     CONFIG_PATH = os.path.abspath(SAVE_CONFIG_PATH)
-    logger.info(f"Using custom configuration path for loading and saving: {CONFIG_PATH}")
+    logger.info(
+        f"Using custom configuration path for loading and saving: {CONFIG_PATH}"
+    )
 elif CUSTOM_CONFIG_PATH:
     # If --config was specified, use it for loading
     CONFIG_PATH = os.path.abspath(CUSTOM_CONFIG_PATH)
@@ -153,11 +158,15 @@ def save_config(config, config_path=None):
     if config_path is None:
         config_path = os.environ.get(
             "ALGO_DASHBOARD_SAVE_CONFIG",
-            os.path.join(os.path.expanduser("~"), ".algosystem", "dashboard_config.json"),
+            os.path.join(
+                os.path.expanduser("~"), ".algosystem", "dashboard_config.json"
+            ),
         )
 
     logger.info(f"Saving configuration to: {config_path}")
-    print(f"Saving configuration to: {config_path}")  # Extra console output for debugging
+    print(
+        f"Saving configuration to: {config_path}"
+    )  # Extra console output for debugging
 
     # Validate configuration content
     if not isinstance(config, dict):
@@ -192,7 +201,9 @@ def save_config(config, config_path=None):
 
         # Verify the file was saved correctly
         file_size = os.path.getsize(config_path)
-        logger.info(f"Configuration saved successfully: {config_path} ({file_size} bytes)")
+        logger.info(
+            f"Configuration saved successfully: {config_path} ({file_size} bytes)"
+        )
         print(f"Configuration saved successfully: {config_path} ({file_size} bytes)")
 
         # Try to read back the saved file as an extra verification step
@@ -201,8 +212,12 @@ def save_config(config, config_path=None):
                 saved_config = json.load(f)
             metrics_count = len(saved_config.get("metrics", []))
             charts_count = len(saved_config.get("charts", []))
-            logger.info(f"Verified saved config: {metrics_count} metrics, {charts_count} charts")
-            print(f"Verified saved config: {metrics_count} metrics, {charts_count} charts")
+            logger.info(
+                f"Verified saved config: {metrics_count} metrics, {charts_count} charts"
+            )
+            print(
+                f"Verified saved config: {metrics_count} metrics, {charts_count} charts"
+            )
         except Exception as read_error:
             logger.warning(f"Warning: Could not verify saved file: {str(read_error)}")
             print(f"Warning: Could not verify saved file: {str(read_error)}")
@@ -230,7 +245,8 @@ def debug_config():
         "file_exists": {
             "DEFAULT_CONFIG_PATH": os.path.exists(DEFAULT_CONFIG_PATH),
             "USER_CONFIG_PATH": os.path.exists(USER_CONFIG_PATH),
-            "CUSTOM_CONFIG_PATH": CUSTOM_CONFIG_PATH and os.path.exists(CUSTOM_CONFIG_PATH),
+            "CUSTOM_CONFIG_PATH": CUSTOM_CONFIG_PATH
+            and os.path.exists(CUSTOM_CONFIG_PATH),
             "SAVE_CONFIG_PATH": SAVE_CONFIG_PATH and os.path.exists(SAVE_CONFIG_PATH),
             "ACTIVE_CONFIG_PATH": os.path.exists(CONFIG_PATH),
         },
@@ -241,7 +257,9 @@ def debug_config():
                 else None
             ),
             "USER_CONFIG_PATH": (
-                os.path.getsize(USER_CONFIG_PATH) if os.path.exists(USER_CONFIG_PATH) else None
+                os.path.getsize(USER_CONFIG_PATH)
+                if os.path.exists(USER_CONFIG_PATH)
+                else None
             ),
             "CUSTOM_CONFIG_PATH": (
                 os.path.getsize(CUSTOM_CONFIG_PATH)

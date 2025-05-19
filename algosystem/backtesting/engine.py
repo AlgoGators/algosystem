@@ -1,12 +1,8 @@
-import pandas as pd
-import numpy as np
-import os
 import matplotlib.pyplot as plt
+import pandas as pd
 
-from algosystem.utils._logging import get_logger
 from algosystem.backtesting import metrics
-
-from algosystem.data.connectors.inserter import Inserter
+from algosystem.utils._logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -51,7 +47,9 @@ class Engine:
                 if data.shape[1] == 1:
                     self.price_series = data.iloc[:, 0].copy()
                 else:
-                    raise ValueError("DataFrame has multiple columns; specify price_column.")
+                    raise ValueError(
+                        "DataFrame has multiple columns; specify price_column."
+                    )
         elif isinstance(data, pd.Series):
             self.price_series = data.copy()
         else:
@@ -73,8 +71,12 @@ class Engine:
                 raise TypeError("benchmark must be a pandas DataFrame or Series")
 
         # Set date range based on provided dates or available index
-        self.start_date = pd.to_datetime(start_date) if start_date else self.price_series.index[0]
-        self.end_date = pd.to_datetime(end_date) if end_date else self.price_series.index[-1]
+        self.start_date = (
+            pd.to_datetime(start_date) if start_date else self.price_series.index[0]
+        )
+        self.end_date = (
+            pd.to_datetime(end_date) if end_date else self.price_series.index[-1]
+        )
         mask = (self.price_series.index >= self.start_date) & (
             self.price_series.index <= self.end_date
         )
@@ -92,7 +94,9 @@ class Engine:
 
         # Use the provided initial_capital or infer it from the first value
         self.initial_capital = (
-            initial_capital if initial_capital is not None else self.price_series.iloc[0]
+            initial_capital
+            if initial_capital is not None
+            else self.price_series.iloc[0]
         )
 
         self.results = None
@@ -104,7 +108,9 @@ class Engine:
                 f"Initialized backtest from {self.start_date.date()} to {self.end_date.date()}"
             )
         else:
-            logger.info(f"Initialized backtest from {self.start_date} to {self.end_date}")
+            logger.info(
+                f"Initialized backtest from {self.start_date} to {self.end_date}"
+            )
 
     def run(self):
         """
@@ -123,21 +129,28 @@ class Engine:
         logger.info("Starting backtest simulation")
 
         # Normalize the price series relative to its first value and scale by initial capital.
-        equity_series = self.initial_capital * (self.price_series / self.price_series.iloc[0])
+        equity_series = self.initial_capital * (
+            self.price_series / self.price_series.iloc[0]
+        )
 
         logger.info("Calculating performance metrics")
         # Calculate metrics
-        self.metrics_data = metrics.calculate_metrics(equity_series, self.benchmark_series)
+        self.metrics_data = metrics.calculate_metrics(
+            equity_series, self.benchmark_series
+        )
 
         logger.info("Calculating time series data")
         # Calculate time series data
-        self.plots = metrics.calculate_time_series_data(equity_series, self.benchmark_series)
+        self.plots = metrics.calculate_time_series_data(
+            equity_series, self.benchmark_series
+        )
 
         self.results = {
             "equity": equity_series,
             "initial_capital": self.initial_capital,
             "final_capital": equity_series.iloc[-1],
-            "returns": (equity_series.iloc[-1] - self.initial_capital) / self.initial_capital,
+            "returns": (equity_series.iloc[-1] - self.initial_capital)
+            / self.initial_capital,
             "data": self.price_series,
             "start_date": self.start_date,
             "end_date": self.end_date,
@@ -270,7 +283,9 @@ class Engine:
             logger.warning("No results available. Running backtest first.")
             self.run()
 
-        from algosystem.backtesting.dashboard.dashboard_generator import generate_dashboard
+        from algosystem.backtesting.dashboard.dashboard_generator import (
+            generate_dashboard,
+        )
 
         return generate_dashboard(self, output_dir, open_browser, config_path)
 
@@ -297,11 +312,11 @@ class Engine:
         )
 
         return generate_standalone_dashboard(self, output_path)
-    
+
     def export_db(self, run_id=None, include_positions=True, include_pnl=True):
         """
         Export backtest results to the database.
-        
+
         Parameters:
         -----------
         run_id : int, optional
@@ -310,12 +325,12 @@ class Engine:
             Whether to export final positions data (if available). Defaults to True.
         include_pnl : bool, optional
             Whether to export symbol PnL data (if available). Defaults to True.
-            
+
         Returns:
         --------
         int
             The run_id used for the export
-            
+
         Notes:
         ------
         - Requires database connection parameters in .env file
@@ -326,44 +341,59 @@ class Engine:
         if self.results is None:
             logger.warning("No results available. Running backtest first.")
             self.run()
-            
+
         if self.results is None:
             raise ValueError("No results available to export to database.")
-        
+
         try:
             from algosystem.data.connectors.inserter import Inserter
         except ImportError:
-            raise ImportError("Required module 'psycopg2' not found. Install it with: pip install psycopg2-binary")
-        
+            raise ImportError(
+                "Required module 'psycopg2' not found. Install it with: pip install psycopg2-binary"
+            )
+
         # Create inserter instance
         inserter = Inserter()
-        
+
         # Get or generate run_id
         if run_id is None:
-            run_id = inserter.get_next_run_id()
+            # Generate a text-based run_id in the same format as existing ones
+            import time
+            run_id = f"{int(time.time() * 1000)}"
         
+        # Ensure run_id is a string
+        run_id = str(run_id)
+
         # Prepare data for export
         equity_curve = self.results.get("equity")
         metrics = self.results.get("metrics", {})
-        
+
         # Extract configuration if available
         config = {
-            "start_date": self.start_date.strftime("%Y-%m-%d") if hasattr(self.start_date, "strftime") else str(self.start_date),
-            "end_date": self.end_date.strftime("%Y-%m-%d") if hasattr(self.end_date, "strftime") else str(self.end_date),
+            "start_date": self.start_date.strftime("%Y-%m-%d")
+            if hasattr(self.start_date, "strftime")
+            else str(self.start_date),
+            "end_date": self.end_date.strftime("%Y-%m-%d")
+            if hasattr(self.end_date, "strftime")
+            else str(self.end_date),
             "initial_capital": float(self.initial_capital),
             "benchmark": self.benchmark_series is not None,
         }
-        
+
         # Prepare final positions data if available and requested
         final_positions = None
-        if include_positions and hasattr(self, "positions") and self.positions is not None:
+        if (
+            include_positions
+            and hasattr(self, "positions")
+            and self.positions is not None
+        ):
             final_positions = self.positions
-        
+
         # Prepare symbol PnL data if available and requested
         symbol_pnl = None
         if include_pnl and hasattr(self, "symbol_pnl") and self.symbol_pnl is not None:
             symbol_pnl = self.symbol_pnl
-        
+
         # Export to database
         run_id = inserter.export_backtest_results(
             run_id=run_id,
@@ -371,9 +401,11 @@ class Engine:
             final_positions=final_positions,
             symbol_pnl=symbol_pnl,
             metrics=metrics,
-            config=config
+            config=config,
         )
-        
-        logger.info(f"Successfully exported backtest results to database with run_id: {run_id}")
-        
+
+        logger.info(
+            f"Successfully exported backtest results to database with run_id: {run_id}"
+        )
+
         return run_id

@@ -4,13 +4,11 @@ This module handles obtaining benchmark data from various sources and storing it
 """
 
 import os
-import pandas as pd
-import numpy as np
-import yfinance as yf
 from datetime import datetime, timedelta
-from pathlib import Path
-import pyarrow as pa
-import pyarrow.parquet as pq
+
+import numpy as np
+import pandas as pd
+import yfinance as yf
 
 from algosystem.utils._logging import get_logger
 
@@ -91,7 +89,12 @@ def get_benchmark_info():
     data = []
     categories = {
         "Stock indices": ["sp500", "nasdaq", "djia", "russell2000", "vix"],
-        "Treasury yields": ["10y_treasury", "5y_treasury", "30y_treasury", "13w_treasury"],
+        "Treasury yields": [
+            "10y_treasury",
+            "5y_treasury",
+            "30y_treasury",
+            "13w_treasury",
+        ],
         "ETFs": [
             "treasury_bonds",
             "corporate_bonds",
@@ -217,7 +220,9 @@ def fetch_benchmark_data(alias, start_date=None, end_date=None, force_refresh=Fa
     """
     # Handle alias
     if alias not in BENCHMARK_ALIASES:
-        logger.warning(f"Unknown benchmark alias: {alias}. Using {DEFAULT_BENCHMARK} instead.")
+        logger.warning(
+            f"Unknown benchmark alias: {alias}. Using {DEFAULT_BENCHMARK} instead."
+        )
         alias = DEFAULT_BENCHMARK
 
     ticker = BENCHMARK_ALIASES[alias]
@@ -257,7 +262,8 @@ def fetch_benchmark_data(alias, start_date=None, end_date=None, force_refresh=Fa
         # Try to fetch as much historical data as possible
         data = yf.download(
             ticker,
-            start=start_date - timedelta(days=365 * 5),  # Get extra history in case needed
+            start=start_date
+            - timedelta(days=365 * 5),  # Get extra history in case needed
             end=end_date,
             progress=False,
         )
@@ -317,7 +323,9 @@ def fetch_all_benchmarks(start_date=None, end_date=None, force_refresh=False):
     for alias in BENCHMARK_ALIASES:
         try:
             logger.info(f"Fetching benchmark data for {alias}")
-            results[alias] = fetch_benchmark_data(alias, start_date, end_date, force_refresh)
+            results[alias] = fetch_benchmark_data(
+                alias, start_date, end_date, force_refresh
+            )
         except Exception as e:
             logger.error(f"Error fetching benchmark {alias}: {str(e)}")
 

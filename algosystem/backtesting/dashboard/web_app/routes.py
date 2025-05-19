@@ -1,10 +1,18 @@
-from flask import render_template, request, jsonify, redirect, url_for, flash, send_from_directory
-import os
 import json
-import pandas as pd
-import numpy as np
 import logging
+import os
+
+import pandas as pd
+from flask import (
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    url_for,
+)
 from werkzeug.utils import secure_filename
+
 from algosystem.backtesting.engine import Engine
 
 # Set up logging
@@ -12,8 +20,8 @@ logger = logging.getLogger(__name__)
 
 # Import available components
 from algosystem.backtesting.dashboard.web_app.available_components import (
-    AVAILABLE_METRICS,
     AVAILABLE_CHARTS,
+    AVAILABLE_METRICS,
 )
 
 # Global references that will be set when routes are registered
@@ -23,7 +31,12 @@ dashboard_path = None
 
 
 def register_routes(
-    app, load_config_func, save_config_func, default_config_path, config_path, save_config_path
+    app,
+    load_config_func,
+    save_config_func,
+    default_config_path,
+    config_path,
+    save_config_path,
 ):
     """
     Register all routes for the Flask application.
@@ -62,7 +75,7 @@ def register_routes(
     def get_config():
         """Get the current configuration."""
         config = load_config_func()
-        logger.info(f"Retrieved configuration for API request")
+        logger.info("Retrieved configuration for API request")
         return jsonify(config)
 
     @app.route("/api/config", methods=["POST"])
@@ -75,7 +88,12 @@ def register_routes(
             if not config_data:
                 logger.error("Received empty or invalid configuration data")
                 return (
-                    jsonify({"status": "error", "message": "Empty or invalid configuration data"}),
+                    jsonify(
+                        {
+                            "status": "error",
+                            "message": "Empty or invalid configuration data",
+                        }
+                    ),
                     400,
                 )
 
@@ -135,12 +153,19 @@ def register_routes(
                 )
             else:
                 logger.error(f"Failed to save configuration to {save_path}")
-                return jsonify({"status": "error", "message": "Failed to save configuration"}), 500
+                return jsonify(
+                    {"status": "error", "message": "Failed to save configuration"}
+                ), 500
 
         except Exception as e:
             logger.exception(f"Error updating configuration: {str(e)}")
             return (
-                jsonify({"status": "error", "message": f"Error updating configuration: {str(e)}"}),
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": f"Error updating configuration: {str(e)}",
+                    }
+                ),
                 500,
             )
 
@@ -163,17 +188,27 @@ def register_routes(
             success = save_config_func(default_config, save_config_path)
 
             if success:
-                logger.info(f"Reset configuration successfully to default")
+                logger.info("Reset configuration successfully to default")
                 return jsonify(
-                    {"status": "success", "message": "Reset to default configuration successfully"}
+                    {
+                        "status": "success",
+                        "message": "Reset to default configuration successfully",
+                    }
                 )
             else:
-                logger.error(f"Failed to reset configuration")
-                return jsonify({"status": "error", "message": "Failed to reset configuration"}), 500
+                logger.error("Failed to reset configuration")
+                return jsonify(
+                    {"status": "error", "message": "Failed to reset configuration"}
+                ), 500
         except Exception as e:
             logger.exception(f"Error resetting configuration: {str(e)}")
             return (
-                jsonify({"status": "error", "message": f"Error resetting configuration: {str(e)}"}),
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": f"Error resetting configuration: {str(e)}",
+                    }
+                ),
                 500,
             )
 
@@ -206,7 +241,9 @@ def register_routes(
 
         if "file" not in request.files:
             logger.warning("No file part in the request")
-            return jsonify({"status": "error", "message": "No file part in the request"})
+            return jsonify(
+                {"status": "error", "message": "No file part in the request"}
+            )
 
         file = request.files["file"]
 
@@ -256,12 +293,21 @@ def register_routes(
                 )
             except Exception as e:
                 logger.exception(f"Error processing CSV: {str(e)}")
-                return jsonify({"status": "error", "message": f"Error processing file: {str(e)}"})
+                return jsonify(
+                    {"status": "error", "message": f"Error processing file: {str(e)}"}
+                )
         else:
             logger.warning(f"Invalid file format: {file.filename}")
             return jsonify(
-                {"status": "error", "message": "Invalid file format. Please upload a CSV file."}
+                {
+                    "status": "error",
+                    "message": "Invalid file format. Please upload a CSV file.",
+                }
             )
 
     # Return references to the global variables
-    return {"uploaded_data": uploaded_data, "engine": engine, "dashboard_path": dashboard_path}
+    return {
+        "uploaded_data": uploaded_data,
+        "engine": engine,
+        "dashboard_path": dashboard_path,
+    }

@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 from scipy.optimize import minimize
 
 
@@ -196,7 +195,10 @@ def calculate_efficient_frontier(returns, num_points=50, risk_free_rate=0.0):
     # Function to minimize for a target return
     def minimize_volatility(weights, target_return):
         # Return should be target_return
-        return_constraint = {"type": "eq", "fun": lambda x: portfolio_return(x) - target_return}
+        return_constraint = {
+            "type": "eq",
+            "fun": lambda x: portfolio_return(x) - target_return,
+        }
         # Weights should sum to 1
         sum_constraint = {"type": "eq", "fun": lambda x: np.sum(x) - 1.0}
 
@@ -252,7 +254,9 @@ def calculate_efficient_frontier(returns, num_points=50, risk_free_rate=0.0):
     target_returns = np.linspace(min_return, max_return, num_points)
 
     # Calculate the efficient frontier
-    efficient_portfolios = [minimize_volatility(None, target) for target in target_returns]
+    efficient_portfolios = [
+        minimize_volatility(None, target) for target in target_returns
+    ]
 
     frontier_weights = [portfolio[0] for portfolio in efficient_portfolios]
     frontier_volatilities = [portfolio[1] for portfolio in efficient_portfolios]

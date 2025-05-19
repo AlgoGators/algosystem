@@ -1,13 +1,13 @@
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+
 from algosystem.backtesting.metrics import (
     calculate_metrics,
     calculate_time_series_data,
+    drawdown_series,
+    equity_curve,
     rolling_sharpe,
     rolling_sortino,
-    equity_curve,
-    drawdown_series,
 )
 
 
@@ -36,7 +36,9 @@ class TestMetricsCalculation:
             assert isinstance(metrics[metric], (int, float))
             assert not pd.isna(metrics[metric])
 
-    def test_calculate_metrics_with_benchmark(self, sample_price_series, sample_benchmark_series):
+    def test_calculate_metrics_with_benchmark(
+        self, sample_price_series, sample_benchmark_series
+    ):
         """Test metrics calculation with benchmark."""
         metrics = calculate_metrics(sample_price_series, sample_benchmark_series)
 
@@ -155,9 +157,13 @@ class TestMetricsCalculation:
             # It's acceptable to raise an error for empty series
             pass
 
-    def test_time_series_data_with_benchmark(self, sample_price_series, sample_benchmark_series):
+    def test_time_series_data_with_benchmark(
+        self, sample_price_series, sample_benchmark_series
+    ):
         """Test time series data calculation with benchmark."""
-        time_series = calculate_time_series_data(sample_price_series, sample_benchmark_series)
+        time_series = calculate_time_series_data(
+            sample_price_series, sample_benchmark_series
+        )
 
         # Should include benchmark data
         assert isinstance(time_series, dict)
@@ -196,7 +202,9 @@ class TestMetricsEdgeCases:
         """Test metrics with extreme values."""
         dates = pd.date_range("2020-01-01", periods=10, freq="D")
         # Create series with extreme jumps
-        extreme_series = pd.Series([100, 1000, 10, 500, 50, 300, 30, 200, 20, 100], index=dates)
+        extreme_series = pd.Series(
+            [100, 1000, 10, 500, 50, 300, 30, 200, 20, 100], index=dates
+        )
 
         # Should handle extreme values without crashing
         metrics = calculate_metrics(extreme_series)
@@ -220,7 +228,9 @@ class TestMetricsEdgeCases:
     def test_rolling_metrics_edge_cases(self):
         """Test rolling metrics with edge cases."""
         # Test with window larger than series
-        short_series = pd.Series([0.01, 0.02, -0.01], index=pd.date_range("2020-01-01", periods=3))
+        short_series = pd.Series(
+            [0.01, 0.02, -0.01], index=pd.date_range("2020-01-01", periods=3)
+        )
 
         # Should handle gracefully
         rolling_sharpe_result = rolling_sharpe(short_series, window=10)

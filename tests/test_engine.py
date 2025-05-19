@@ -1,8 +1,7 @@
-import pytest
-import pandas as pd
 import numpy as np
-import tempfile
-import os
+import pandas as pd
+import pytest
+
 from algosystem.backtesting.engine import Engine
 
 
@@ -112,7 +111,9 @@ class TestEngine:
         assert "annualized_return" in results["metrics"]
         assert "annualized_volatility" in results["metrics"]
 
-    def test_backtest_with_benchmark(self, sample_price_series, sample_benchmark_series):
+    def test_backtest_with_benchmark(
+        self, sample_price_series, sample_benchmark_series
+    ):
         """Test backtest with benchmark comparison."""
         engine = Engine(sample_price_series, benchmark=sample_benchmark_series)
         results = engine.run()
@@ -199,7 +200,9 @@ class TestEngine:
         assert "annualized_volatility" in results["metrics"]  # Fixed: use correct key
 
         # Verify high volatility is detected
-        assert results["metrics"]["annualized_volatility"] > 0.1  # Should be significantly volatile
+        assert (
+            results["metrics"]["annualized_volatility"] > 0.1
+        )  # Should be significantly volatile
 
     def test_negative_returns_series(self, negative_returns_series):
         """Test engine with series that has negative returns."""
@@ -251,7 +254,9 @@ class TestEngine:
     def test_invalid_date_range(self, sample_price_series):
         """Test engine with invalid date range."""
         # End date before start date should result in empty data
-        engine = Engine(sample_price_series, start_date="2020-12-31", end_date="2020-01-01")
+        engine = Engine(
+            sample_price_series, start_date="2020-12-31", end_date="2020-01-01"
+        )
         with pytest.raises(ValueError):
             # Should raise error due to empty data after filtering
             pass
@@ -259,7 +264,9 @@ class TestEngine:
     def test_date_range_outside_data(self, sample_price_series):
         """Test engine with date range outside available data."""
         # Dates far in the future
-        engine = Engine(sample_price_series, start_date="2025-01-01", end_date="2025-12-31")
+        engine = Engine(
+            sample_price_series, start_date="2025-01-01", end_date="2025-12-31"
+        )
         with pytest.raises(ValueError):
             # Should raise error due to no data in range
             pass
@@ -368,7 +375,9 @@ class TestEngineEdgeCases:
 
     def test_two_data_points(self):
         """Test engine with exactly two data points."""
-        two_points = pd.Series([100, 101], index=pd.date_range("2020-01-01", periods=2, freq="D"))
+        two_points = pd.Series(
+            [100, 101], index=pd.date_range("2020-01-01", periods=2, freq="D")
+        )
 
         engine = Engine(two_points)
         results = engine.run()
@@ -422,7 +431,18 @@ class TestEngineEdgeCases:
         """Test engine with very small price values."""
         dates = pd.date_range("2020-01-01", periods=10, freq="D")
         small_prices = pd.Series(
-            [1e-6, 1.1e-6, 1.2e-6, 1.3e-6, 1.4e-6, 1.5e-6, 1.6e-6, 1.7e-6, 1.8e-6, 1.9e-6],
+            [
+                1e-6,
+                1.1e-6,
+                1.2e-6,
+                1.3e-6,
+                1.4e-6,
+                1.5e-6,
+                1.6e-6,
+                1.7e-6,
+                1.8e-6,
+                1.9e-6,
+            ],
             index=dates,
         )
 
@@ -438,7 +458,18 @@ class TestEngineEdgeCases:
         """Test engine with very large price values."""
         dates = pd.date_range("2020-01-01", periods=10, freq="D")
         large_prices = pd.Series(
-            [1e15, 1.1e15, 1.2e15, 1.3e15, 1.4e15, 1.5e15, 1.6e15, 1.7e15, 1.8e15, 1.9e15],
+            [
+                1e15,
+                1.1e15,
+                1.2e15,
+                1.3e15,
+                1.4e15,
+                1.5e15,
+                1.6e15,
+                1.7e15,
+                1.8e15,
+                1.9e15,
+            ],
             index=dates,
         )
 
@@ -495,8 +526,12 @@ class TestEngineEdgeCases:
     def test_benchmark_no_overlap(self, sample_price_series):
         """Test with benchmark that has no date overlap."""
         # Create benchmark with completely different dates
-        benchmark_dates = pd.date_range("2021-01-01", periods=len(sample_price_series), freq="D")
-        no_overlap_benchmark = pd.Series(sample_price_series.values, index=benchmark_dates)
+        benchmark_dates = pd.date_range(
+            "2021-01-01", periods=len(sample_price_series), freq="D"
+        )
+        no_overlap_benchmark = pd.Series(
+            sample_price_series.values, index=benchmark_dates
+        )
 
         engine = Engine(sample_price_series, benchmark=no_overlap_benchmark)
         results = engine.run()

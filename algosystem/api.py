@@ -3,19 +3,20 @@ Enhanced AlgoSystem API - provides a comprehensive Python interface to all funct
 """
 
 import os
-import pandas as pd
+
 import matplotlib.pyplot as plt
+import pandas as pd
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
+from rich.table import Table
 
 from algosystem.backtesting import Engine
 from algosystem.backtesting.dashboard.utils.default_config import get_default_config
 from algosystem.data.benchmark import (
-    fetch_benchmark_data,
-    get_benchmark_list,
-    get_benchmark_info,
     DEFAULT_BENCHMARK,
+    fetch_benchmark_data,
+    get_benchmark_info,
+    get_benchmark_list,
 )
 from algosystem.utils._logging import get_logger
 
@@ -87,7 +88,9 @@ class AlgoSystem:
             Whether to show detailed metrics
         """
         if engine.results is None:
-            console.print("[bold red]No results available. Run the backtest first.[/bold red]")
+            console.print(
+                "[bold red]No results available. Run the backtest first.[/bold red]"
+            )
             return
 
         results = engine.results
@@ -100,7 +103,7 @@ class AlgoSystem:
                 f"Period: {results['start_date'].strftime('%Y-%m-%d')} to {results['end_date'].strftime('%Y-%m-%d')}\n"
                 f"Initial Capital: ${results['initial_capital']:,.2f}\n"
                 f"Final Capital: ${results['final_capital']:,.2f}\n"
-                f"Total Return: {results['returns']*100:.2f}%",
+                f"Total Return: {results['returns'] * 100:.2f}%",
                 title="AlgoSystem Results",
                 expand=False,
             )
@@ -113,11 +116,11 @@ class AlgoSystem:
 
         # Essential metrics to show
         essential_metrics = [
-            ("total_return", "Total Return", lambda x: f"{x*100:.2f}%"),
-            ("annualized_return", "Annualized Return", lambda x: f"{x*100:.2f}%"),
+            ("total_return", "Total Return", lambda x: f"{x * 100:.2f}%"),
+            ("annualized_return", "Annualized Return", lambda x: f"{x * 100:.2f}%"),
             ("sharpe_ratio", "Sharpe Ratio", lambda x: f"{x:.2f}"),
-            ("max_drawdown", "Max Drawdown", lambda x: f"{x*100:.2f}%"),
-            ("volatility", "Volatility", lambda x: f"{x*100:.2f}%"),
+            ("max_drawdown", "Max Drawdown", lambda x: f"{x * 100:.2f}%"),
+            ("volatility", "Volatility", lambda x: f"{x * 100:.2f}%"),
         ]
 
         # Add essential metrics to table
@@ -127,7 +130,7 @@ class AlgoSystem:
 
         # Add benchmark metrics if available
         if "alpha" in metrics:
-            table.add_row("Alpha", f"{metrics['alpha']*100:.2f}%")
+            table.add_row("Alpha", f"{metrics['alpha'] * 100:.2f}%")
         if "beta" in metrics:
             table.add_row("Beta", f"{metrics['beta']:.2f}")
 
@@ -149,7 +152,7 @@ class AlgoSystem:
                     if "ratio" in key or "return" in key:
                         formatted_value = f"{value:.4f}"
                     elif "percentage" in key or key.endswith("_pct"):
-                        formatted_value = f"{value*100:.2f}%"
+                        formatted_value = f"{value * 100:.2f}%"
                     else:
                         formatted_value = f"{value:.4f}"
                 else:
@@ -160,7 +163,9 @@ class AlgoSystem:
             console.print(detailed_table)
 
     @staticmethod
-    def generate_dashboard(engine, output_dir=None, open_browser=True, config_path=None):
+    def generate_dashboard(
+        engine, output_dir=None, open_browser=True, config_path=None
+    ):
         """
         Generate an interactive HTML dashboard for the backtest results.
 
@@ -245,7 +250,9 @@ class AlgoSystem:
             Path to the exported data file
         """
         if engine.results is None:
-            console.print("[bold red]No results available. Run the backtest first.[/bold red]")
+            console.print(
+                "[bold red]No results available. Run the backtest first.[/bold red]"
+            )
             return None
 
         results = engine.results
@@ -281,7 +288,7 @@ class AlgoSystem:
             raise ValueError(f"Unsupported format: {format}. Use 'csv' or 'excel'.")
 
         return output_path
-    
+
     @staticmethod
     def export_to_db(engine, db_url, table_name="backtest_results"):
         """
@@ -301,7 +308,9 @@ class AlgoSystem:
         None
         """
         if engine.results is None:
-            console.print("[bold red]No results available. Run the backtest first.[/bold red]")
+            console.print(
+                "[bold red]No results available. Run the backtest first.[/bold red]"
+            )
             return
 
         # Export results to database
@@ -327,7 +336,9 @@ class AlgoSystem:
             List of paths to the generated chart images
         """
         if engine.results is None:
-            console.print("[bold red]No results available. Run the backtest first.[/bold red]")
+            console.print(
+                "[bold red]No results available. Run the backtest first.[/bold red]"
+            )
             return []
 
         # Set default output directory if not provided
@@ -374,13 +385,21 @@ class AlgoSystem:
         # Export main equity curve
         if "equity" in results:
             output_paths.append(
-                save_chart(results["equity"], "Portfolio Equity Curve", "equity_curve", "Value")
+                save_chart(
+                    results["equity"], "Portfolio Equity Curve", "equity_curve", "Value"
+                )
             )
 
         # Export drawdown chart
         if "drawdown_series" in plots:
             output_paths.append(
-                save_chart(plots["drawdown_series"], "Drawdown", "drawdown", "Drawdown (%)", "area")
+                save_chart(
+                    plots["drawdown_series"],
+                    "Drawdown",
+                    "drawdown",
+                    "Drawdown (%)",
+                    "area",
+                )
             )
 
         # Export rolling metrics
@@ -534,7 +553,9 @@ class AlgoSystem:
             return None
 
     @staticmethod
-    def get_benchmark(benchmark_alias=DEFAULT_BENCHMARK, start_date=None, end_date=None):
+    def get_benchmark(
+        benchmark_alias=DEFAULT_BENCHMARK, start_date=None, end_date=None
+    ):
         """
         Get benchmark data for the specified alias.
 
@@ -581,7 +602,9 @@ class AlgoSystem:
 
             for _, row in category_info.iterrows():
                 table.add_row(
-                    category if _ == category_info.index[0] else "",  # Only show category once
+                    category
+                    if _ == category_info.index[0]
+                    else "",  # Only show category once
                     row["Alias"],
                     row["Description"],
                 )

@@ -1,12 +1,14 @@
-import pytest
-import os
 import json
-import pandas as pd
+import os
 from unittest.mock import patch
+
+import pandas as pd
+import pytest
+
 from algosystem.backtesting.dashboard.web_app.app import (
-    start_dashboard_editor,
     load_config,
     save_config,
+    start_dashboard_editor,
 )
 
 
@@ -84,7 +86,9 @@ class TestWebAppBasics:
         invalid_configs = [None, "", [], "not a dict", {}]  # Empty dict
 
         for invalid_config in invalid_configs:
-            config_path = os.path.join(temp_directory, f"invalid_{id(invalid_config)}.json")
+            config_path = os.path.join(
+                temp_directory, f"invalid_{id(invalid_config)}.json"
+            )
 
             # Should handle gracefully or return False
             success = save_config(invalid_config, config_path)
@@ -157,9 +161,13 @@ class TestWebAppComponents:
 
     def test_data_formatter_basic(self, sample_price_series):
         """Test basic data formatting for dashboard."""
-        from algosystem.backtesting.dashboard.utils.data_formatter import prepare_dashboard_data
+        from algosystem.backtesting.dashboard.utils.data_formatter import (
+            prepare_dashboard_data,
+        )
+        from algosystem.backtesting.dashboard.utils.default_config import (
+            get_default_config,
+        )
         from algosystem.backtesting.engine import Engine
-        from algosystem.backtesting.dashboard.utils.default_config import get_default_config
 
         # Create engine and run backtest
         engine = Engine(sample_price_series)
@@ -170,7 +178,11 @@ class TestWebAppComponents:
             config = get_default_config()
         except ImportError:
             # Create minimal config if get_default_config not available
-            config = {"metrics": [], "charts": [], "layout": {"max_cols": 2, "title": "Test"}}
+            config = {
+                "metrics": [],
+                "charts": [],
+                "layout": {"max_cols": 2, "title": "Test"},
+            }
 
         # Test data preparation
         try:
@@ -273,8 +285,8 @@ class TestWebAppIntegration:
         """Test that available components are properly structured."""
         try:
             from algosystem.backtesting.dashboard.web_app.available_components import (
-                AVAILABLE_METRICS,
                 AVAILABLE_CHARTS,
+                AVAILABLE_METRICS,
             )
 
             # Check that they are lists
@@ -303,16 +315,24 @@ class TestWebAppIntegration:
     def test_template_generation_basic(self):
         """Test basic template generation functionality."""
         try:
-            from algosystem.backtesting.dashboard.template.base_template import generate_html
+            from algosystem.backtesting.dashboard.template.base_template import (
+                generate_html,
+            )
             from algosystem.backtesting.engine import Engine
 
             # Create minimal test data
-            test_data = pd.Series([100, 101, 102], index=pd.date_range("2020-01-01", periods=3))
+            test_data = pd.Series(
+                [100, 101, 102], index=pd.date_range("2020-01-01", periods=3)
+            )
             engine = Engine(test_data)
             results = engine.run()
 
             # Minimal config
-            config = {"metrics": [], "charts": [], "layout": {"max_cols": 2, "title": "Test"}}
+            config = {
+                "metrics": [],
+                "charts": [],
+                "layout": {"max_cols": 2, "title": "Test"},
+            }
 
             # Minimal dashboard data
             dashboard_data = {
@@ -336,7 +356,7 @@ class TestWebAppIntegration:
 
         except ImportError:
             pytest.skip("Template generation not implemented")
-        except Exception as e:
+        except Exception:
             # Don't fail test if template generation has issues
             # Just ensure it doesn't crash the test suite
             pass

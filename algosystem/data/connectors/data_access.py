@@ -1,11 +1,12 @@
-from typing import List, Dict, Optional, Any, Type, Tuple
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.engine import Engine
-from sqlalchemy import create_engine
-from sqlalchemy.exc import SQLAlchemyError
-from algosystem.data.connectors.db_models import get_engine, OHLCV
-import pandas as pd
 import logging
+from typing import Any, Dict, List, Optional, Tuple, Type
+
+import pandas as pd
+from sqlalchemy.engine import Engine
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import sessionmaker
+
+from algosystem.data.connectors.db_models import OHLCV, get_engine
 
 
 class DataAccess:
@@ -23,10 +24,7 @@ class DataAccess:
         self.logger.setLevel(logging.INFO)
 
     def get_ohlcv_data(
-        self, 
-        start_date: str, 
-        end_date: str, 
-        symbols: Optional[List[str]] = None
+        self, start_date: str, end_date: str, symbols: Optional[List[str]] = None
     ) -> List[Dict[str, Any]]:
         """
         Retrieves OHLCV data for the specified date range and symbols.
@@ -50,12 +48,14 @@ class DataAccess:
             query = query.order_by(OHLCV.symbol, OHLCV.time)
 
             data: List[OHLCV] = query.all()
-            result: List[Dict[str, Any]] = [record.__dict__ for record in data if record]
-            
+            result: List[Dict[str, Any]] = [
+                record.__dict__ for record in data if record
+            ]
+
             # Remove SQLAlchemy's internal state metadata
             for record in result:
                 record.pop("_sa_instance_state", None)
-            
+
             return result
 
     def get_symbols(self) -> List[str]:
@@ -65,10 +65,10 @@ class DataAccess:
         Returns:
             List[str]: A list of unique symbols.
         """
-        with self.Session() as session:  
+        with self.Session() as session:
             symbols: List[Tuple[str]] = session.query(OHLCV.symbol).distinct().all()
             return [symbol[0] for symbol in symbols]
-        
+
     def get_earliest_date(self) -> Optional[str]:
         """
         Retrieves the earliest date from the OHLCV table.
@@ -79,17 +79,17 @@ class DataAccess:
         with self.Session() as session:
             try:
                 earliest_date: Optional[Tuple[Optional[str]]] = (
-                    session.query(OHLCV.time)
-                    .order_by(OHLCV.time.asc())
-                    .first()
+                    session.query(OHLCV.time).order_by(OHLCV.time.asc()).first()
                 )
                 if earliest_date and earliest_date[0]:
-                    self.logger.info(f"Earliest available date in the database: {earliest_date[0]}")
+                    self.logger.info(
+                        f"Earliest available date in the database: {earliest_date[0]}"
+                    )
                     return earliest_date[0].strftime("%Y-%m-%d")
                 return None
             except SQLAlchemyError as e:
                 self.logger.error(f"Error retrieving earliest date: {e}")
-    
+
     def get_latest_date(self) -> Optional[str]:
         """
         Retrieves the most recent date from the OHLCV table.
@@ -100,12 +100,12 @@ class DataAccess:
         with self.Session() as session:
             try:
                 latest_date: Optional[Tuple[Optional[str]]] = (
-                    session.query(OHLCV.time)
-                    .order_by(OHLCV.time.desc())
-                    .first()
+                    session.query(OHLCV.time).order_by(OHLCV.time.desc()).first()
                 )
                 if latest_date and latest_date[0]:
-                    self.logger.info(f"Latest available date in the database: {latest_date[0]}")
+                    self.logger.info(
+                        f"Latest available date in the database: {latest_date[0]}"
+                    )
                     return latest_date[0].strftime("%Y-%m-%d")
                 return None
             except SQLAlchemyError as e:
@@ -122,7 +122,7 @@ class DataAccess:
         Returns:
             Optional[Dict[str, Any]]: The latest OHLCV record or None if not found.
         """
-        with self.Session() as session:  
+        with self.Session() as session:
             latest_data: Optional[OHLCV] = (
                 session.query(OHLCV)
                 .filter_by(symbol=symbol)
@@ -145,7 +145,7 @@ class DataAccess:
         Raises:
             SQLAlchemyError: If an error occurs during the insertion process.
         """
-        with self.Session() as session:  
+        with self.Session() as session:
             try:
                 objects: List[OHLCV] = [OHLCV(**record) for record in records]
                 session.add_all(objects)
@@ -157,10 +157,7 @@ class DataAccess:
                 raise
 
     def delete_data(
-        self, 
-        start_date: str, 
-        end_date: str, 
-        symbols: Optional[List[str]] = None
+        self, start_date: str, end_date: str, symbols: Optional[List[str]] = None
     ) -> None:
         """
         Deletes OHLCV records within a specified date range and symbols.
@@ -173,14 +170,14 @@ class DataAccess:
         Raises:
             SQLAlchemyError: If an error occurs during the deletion process.
         """
-        with self.Session() as session:  
+        with self.Session() as session:
             try:
                 query = session.query(OHLCV).filter(
                     OHLCV.time.between(start_date, end_date)
                 )
                 if symbols:
                     query = query.filter(OHLCV.symbol.in_(symbols))
-                
+
                 rows_deleted: int = query.delete(synchronize_session=False)
                 session.commit()
                 self.logger.info(f"Deleted {rows_deleted} records successfully.")
@@ -193,14 +190,17 @@ class DataAccess:
 if __name__ == "__main__":
     data = DataAccess()
 
-    ohlcv_df = pd.DataFrame(data.get_ohlcv_data('2010-06-07', '2024-12-19'), 
-                            columns=['time', 'open', 'high', 'low', 'close', 'volume', 'symbol'])
-    ohclv_6B_df = pd.DataFrame(data.get_ohlcv_data('2010-06-07', '2024-12-19', ['6B.c.0']), 
-                                columns=['time', 'open', 'high', 'low', 'close', 'volume', 'symbol'])
+    ohlcv_df = pd.DataFrame(
+        data.get_ohlcv_data("2010-06-07", "2024-12-19"),
+        columns=["time", "open", "high", "low", "close", "volume", "symbol"],
+    )
+    ohclv_6B_df = pd.DataFrame(
+        data.get_ohlcv_data("2010-06-07", "2024-12-19", ["6B.c.0"]),
+        columns=["time", "open", "high", "low", "close", "volume", "symbol"],
+    )
 
     print(f"Symbols:\n {list(data.get_symbols())}\n")
     print(f"Earliest Date: {data.get_earliest_date()}\n")
     print(f"Latest Date: {data.get_latest_date()}\n")
     print(f"OHLCV: \n{ohlcv_df}\n")
     print(f"OHLCV for 6B: \n{ohclv_6B_df}\n")
-    

@@ -1,13 +1,12 @@
-import pytest
-import tempfile
-import os
 import json
-import shutil
-from algosystem.backtesting.engine import Engine
+import os
+import tempfile
+
 from algosystem.backtesting.dashboard.dashboard_generator import (
     generate_dashboard,
     generate_standalone_dashboard,
 )
+from algosystem.backtesting.engine import Engine
 
 
 class TestDashboardGeneration:
@@ -19,7 +18,9 @@ class TestDashboardGeneration:
         results = engine.run()
 
         # Generate dashboard
-        dashboard_path = generate_dashboard(engine, output_dir=temp_directory, open_browser=False)
+        dashboard_path = generate_dashboard(
+            engine, output_dir=temp_directory, open_browser=False
+        )
 
         # Check that files were created
         assert os.path.exists(dashboard_path)
@@ -37,7 +38,9 @@ class TestDashboardGeneration:
         engine = Engine(sample_price_series, benchmark=sample_benchmark_series)
         results = engine.run()
 
-        dashboard_path = generate_dashboard(engine, output_dir=temp_directory, open_browser=False)
+        dashboard_path = generate_dashboard(
+            engine, output_dir=temp_directory, open_browser=False
+        )
 
         # Check that dashboard was created
         assert os.path.exists(dashboard_path)
@@ -73,7 +76,9 @@ class TestDashboardGeneration:
         assert "<style>" in content or "stylesheet" in content
         assert "<script>" in content or "text/javascript" in content
 
-    def test_generate_dashboard_with_custom_config(self, sample_price_series, temp_directory):
+    def test_generate_dashboard_with_custom_config(
+        self, sample_price_series, temp_directory
+    ):
         """Test dashboard generation with custom configuration."""
         # Create a simple custom config
         custom_config = {
@@ -109,23 +114,32 @@ class TestDashboardGeneration:
         results = engine.run()
 
         dashboard_path = generate_dashboard(
-            engine, output_dir=temp_directory, config_path=config_path, open_browser=False
+            engine,
+            output_dir=temp_directory,
+            config_path=config_path,
+            open_browser=False,
         )
 
         # Check that dashboard was created
         assert os.path.exists(dashboard_path)
 
-    def test_engine_generate_dashboard_method(self, sample_price_series, temp_directory):
+    def test_engine_generate_dashboard_method(
+        self, sample_price_series, temp_directory
+    ):
         """Test dashboard generation through Engine method."""
         engine = Engine(sample_price_series)
         results = engine.run()
 
         # Use Engine's method
-        dashboard_path = engine.generate_dashboard(output_dir=temp_directory, open_browser=False)
+        dashboard_path = engine.generate_dashboard(
+            output_dir=temp_directory, open_browser=False
+        )
 
         assert os.path.exists(dashboard_path)
 
-    def test_engine_generate_standalone_method(self, sample_price_series, temp_directory):
+    def test_engine_generate_standalone_method(
+        self, sample_price_series, temp_directory
+    ):
         """Test standalone dashboard generation through Engine method."""
         engine = Engine(sample_price_series)
         results = engine.run()
@@ -143,7 +157,9 @@ class TestDashboardGeneration:
         engine = Engine(sample_price_series)
         results = engine.run()
 
-        dashboard_path = generate_dashboard(engine, output_dir=temp_directory, open_browser=False)
+        dashboard_path = generate_dashboard(
+            engine, output_dir=temp_directory, open_browser=False
+        )
 
         # Load and check dashboard data
         data_path = os.path.join(temp_directory, "dashboard_data.json")
@@ -207,7 +223,10 @@ class TestDashboardEdgeCases:
         # Should handle invalid config gracefully or raise appropriate error
         try:
             dashboard_path = generate_dashboard(
-                engine, output_dir=temp_directory, config_path=config_path, open_browser=False
+                engine,
+                output_dir=temp_directory,
+                config_path=config_path,
+                open_browser=False,
             )
             # If it succeeds, check that files exist
             assert os.path.exists(dashboard_path)
@@ -215,7 +234,9 @@ class TestDashboardEdgeCases:
             # Expected for invalid config
             pass
 
-    def test_dashboard_with_nonexistent_config(self, sample_price_series, temp_directory):
+    def test_dashboard_with_nonexistent_config(
+        self, sample_price_series, temp_directory
+    ):
         """Test dashboard generation with non-existent config file."""
         engine = Engine(sample_price_series)
         results = engine.run()
@@ -224,7 +245,10 @@ class TestDashboardEdgeCases:
 
         # Should handle gracefully or use default config
         dashboard_path = generate_dashboard(
-            engine, output_dir=temp_directory, config_path=nonexistent_config, open_browser=False
+            engine,
+            output_dir=temp_directory,
+            config_path=nonexistent_config,
+            open_browser=False,
         )
 
         # Should still create dashboard (with default config)
@@ -263,7 +287,6 @@ class TestDashboardEdgeCases:
         """Test dashboard generation with extreme data values."""
         # Create data with extreme values
         import pandas as pd
-        import numpy as np
 
         dates = pd.date_range("2020-01-01", periods=10, freq="D")
         extreme_data = pd.Series(
@@ -274,7 +297,9 @@ class TestDashboardEdgeCases:
         results = engine.run()
 
         # Should handle extreme values without crashing
-        dashboard_path = generate_dashboard(engine, output_dir=temp_directory, open_browser=False)
+        dashboard_path = generate_dashboard(
+            engine, output_dir=temp_directory, open_browser=False
+        )
 
         assert os.path.exists(dashboard_path)
 
@@ -284,10 +309,14 @@ class TestDashboardEdgeCases:
         results = engine.run()
 
         # Generate first dashboard
-        dashboard_path1 = generate_dashboard(engine, output_dir=temp_directory, open_browser=False)
+        dashboard_path1 = generate_dashboard(
+            engine, output_dir=temp_directory, open_browser=False
+        )
 
         # Generate second dashboard (should overwrite)
-        dashboard_path2 = generate_dashboard(engine, output_dir=temp_directory, open_browser=False)
+        dashboard_path2 = generate_dashboard(
+            engine, output_dir=temp_directory, open_browser=False
+        )
 
         # Both should point to the same location
         assert dashboard_path1 == dashboard_path2
@@ -302,7 +331,9 @@ class TestDashboardFiles:
         engine = Engine(sample_price_series)
         results = engine.run()
 
-        dashboard_path = generate_dashboard(engine, output_dir=temp_directory, open_browser=False)
+        dashboard_path = generate_dashboard(
+            engine, output_dir=temp_directory, open_browser=False
+        )
 
         # Read and check HTML content
         with open(dashboard_path, "r", encoding="utf-8") as f:

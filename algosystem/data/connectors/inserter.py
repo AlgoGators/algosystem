@@ -1,13 +1,14 @@
-import os
 import logging
-from datetime import datetime
-from typing import Dict, List, Any, Optional
-from dotenv import load_dotenv
+import os
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
 import psycopg2
+from dotenv import load_dotenv
 from psycopg2.extras import execute_values
 
 load_dotenv()
+
 
 class Inserter:
     """
@@ -26,14 +27,18 @@ class Inserter:
         self.db_host = os.getenv("DB_HOST")
         self.db_port = os.getenv("DB_PORT")
 
-        missing = [k for k, v in {
-            "DB_NAME": self.db_name,
-            "DB_USER": self.db_user,
-            "DB_PASSWORD": self.db_pass,
-            "DB_HOST": self.db_host,
-            "DB_PORT": self.db_port,
-        }.items() if not v]
-        
+        missing = [
+            k
+            for k, v in {
+                "DB_NAME": self.db_name,
+                "DB_USER": self.db_user,
+                "DB_PASSWORD": self.db_pass,
+                "DB_HOST": self.db_host,
+                "DB_PORT": self.db_port,
+            }.items()
+            if not v
+        ]
+
         if missing:
             raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
 
@@ -53,15 +58,10 @@ class Inserter:
             port=self.db_port,
         )
 
-    def insert_data(
-        self,
-        data: List[Dict[str, Any]],
-        schema: str,
-        table: str
-    ) -> None:
+    def insert_data(self, data: List[Dict[str, Any]], schema: str, table: str) -> None:
         """
         Bulk insert a list of same-shaped dictionaries into schema.table.
-        
+
         Args:
             data: List of dictionaries with identical keys
             schema: Database schema name
@@ -85,7 +85,7 @@ class Inserter:
                     cur,
                     f"INSERT INTO {full_table} ({col_list}) VALUES %s",
                     values,
-                    template=tmpl
+                    template=tmpl,
                 )
             self.conn.commit()
             self.logger.info(f"Inserted {len(values)} rows into {full_table}")
@@ -94,17 +94,15 @@ class Inserter:
             self.logger.error(f"Failed to insert into {full_table}: {e}")
             raise
 
-    def validate_insertion(
-        self, schema: str, table: str, expected_rows: int
-    ) -> bool:
+    def validate_insertion(self, schema: str, table: str, expected_rows: int) -> bool:
         """
         Verify that at least the expected number of rows are present in the table.
-        
+
         Args:
             schema: Database schema name
             table: Database table name
             expected_rows: Minimum number of rows expected
-            
+
         Returns:
             True if validation passes, False otherwise
         """
@@ -125,11 +123,11 @@ class Inserter:
         except Exception as e:
             self.logger.error(f"Validation error for {schema}.{table}: {e}")
             return False
-    
+
     def get_next_run_id(self) -> int:
         """
         Get the next available run_id from the backtest.results table.
-        
+
         Returns:
             The next available run_id
         """
@@ -150,11 +148,11 @@ class Inserter:
         final_positions: Optional[pd.DataFrame] = None,
         symbol_pnl: Optional[pd.DataFrame] = None,
         metrics: Optional[Dict[str, Any]] = None,
-        config: Optional[Dict[str, Any]] = None
+        config: Optional[Dict[str, Any]] = None,
     ) -> int:
         """
         Export backtest results to the database.
-        
+
         Args:
             run_id: Unique identifier for this backtest run
             equity_curve: Series of equity values indexed by timestamp
@@ -162,74 +160,130 @@ class Inserter:
             symbol_pnl: DataFrame of PnL by symbol
             metrics: Dictionary of backtest metrics
             config: Dictionary of backtest configuration
-            
+
         Returns:
             The run_id used for the export
         """
         self.connect()
         
-        # Export equity curve
-        if equity_curve is not None and not equity_curve.empty:
-            equity_data = []
-            for timestamp, equity in equity_curve.items():
-                equity_data.append({
+        try:
+            # FIRST: Export backtest results and metrics
+            # This must happen first due to foreign key constraints
+            if metrics is not None:
+                # Prepare metrics data
+                result_data = {
                     "run_id": run_id,
-                    "timestamp": timestamp,
-                    "equity": float(equity)
-                })
-            
-            self.insert_data(equity_data, "backtest", "equity_curve")
-        
-        # Export final positions
-        if final_positions is not None and not final_positions.empty:
-            positions_data = []
-            for _, row in final_positions.iterrows():
-                positions_data.append({
+                    "start_date": equity_curve.index[0].date()
+                    if equity_curve is not None and not equity_curve.empty
+                    else None,
+                    "end_date": equity_curve.index[-1].date()
+                    if equity_curve is not None and not equity_curve.empty
+                    else None,
+                }
+
+                # Convert config to JSON string if it exists
+                if config is not None:
+                    import json
+                    result_data["config"] = json.dumps(config)
+
+                # Add specific metrics
+                metric_fields = [
+                    "total_return",
+                    "sharpe_ratio",
+                    "sortino_ratio",
+                    "max_drawdown",
+                    "calmar_ratio",
+                    "volatility",
+                    "total_trades",
+                    "win_rate",
+                    "profit_factor",
+                    "avg_win",
+                    "avg_loss",
+                    "max_win",
+                    "max_loss",
+                    "avg_holding_period",
+                    "var_95",
+                    "cvar_95",
+                    "beta",
+                    "correlation",
+                    "downside_volatility",
+                ]
+
+                for field in metric_fields:
+                    if field in metrics:
+                        result_data[field] = float(metrics[field])
+
+                self.insert_data([result_data], "backtest", "results")
+            else:
+                # Even without metrics, we need at least a minimal record in results table
+                result_data = {
                     "run_id": run_id,
-                    "symbol": row["symbol"],
-                    "quantity": float(row["quantity"]),
-                    "average_price": float(row["average_price"]),
-                    "unrealized_pnl": float(row.get("unrealized_pnl", 0.0)),
-                    "realized_pnl": float(row.get("realized_pnl", 0.0))
-                })
+                    "start_date": equity_curve.index[0].date()
+                    if equity_curve is not None and not equity_curve.empty
+                    else None,
+                    "end_date": equity_curve.index[-1].date()
+                    if equity_curve is not None and not equity_curve.empty
+                    else None,
+                }
+                
+                # Convert config to JSON string if it exists
+                if config is not None:
+                    import json
+                    result_data["config"] = json.dumps(config)
+                    
+                self.insert_data([result_data], "backtest", "results")
+
+            # SECOND: Export equity curve
+            if equity_curve is not None and not equity_curve.empty:
+                equity_data = []
+                for timestamp, equity in equity_curve.items():
+                    equity_data.append(
+                        {"run_id": run_id, "timestamp": timestamp, "equity": float(equity)}
+                    )
+
+                self.insert_data(equity_data, "backtest", "equity_curve")
+
+            # THIRD: Export final positions
+            if final_positions is not None and not final_positions.empty:
+                positions_data = []
+                for _, row in final_positions.iterrows():
+                    positions_data.append(
+                        {
+                            "run_id": run_id,
+                            "symbol": row["symbol"],
+                            "quantity": float(row["quantity"]),
+                            "average_price": float(row["average_price"]),
+                            "unrealized_pnl": float(row.get("unrealized_pnl", 0.0)),
+                            "realized_pnl": float(row.get("realized_pnl", 0.0)),
+                        }
+                    )
+
+                self.insert_data(positions_data, "backtest", "final_positions")
+
+            # FOURTH: Export symbol PnL
+            if symbol_pnl is not None and not symbol_pnl.empty:
+                pnl_data = []
+                for _, row in symbol_pnl.iterrows():
+                    pnl_data.append(
+                        {
+                            "run_id": run_id,
+                            "symbol": row["symbol"],
+                            "pnl": float(row["pnl"]),
+                        }
+                    )
+
+                self.insert_data(pnl_data, "backtest", "symbol_pnl")
+
+            return run_id
             
-            self.insert_data(positions_data, "backtest", "final_positions")
-        
-        # Export symbol PnL
-        if symbol_pnl is not None and not symbol_pnl.empty:
-            pnl_data = []
-            for _, row in symbol_pnl.iterrows():
-                pnl_data.append({
-                    "run_id": run_id,
-                    "symbol": row["symbol"],
-                    "pnl": float(row["pnl"])
-                })
-            
-            self.insert_data(pnl_data, "backtest", "symbol_pnl")
-        
-        # Export backtest results and metrics
-        if metrics is not None:
-            # Prepare metrics data
-            result_data = {
-                "run_id": run_id,
-                "start_date": equity_curve.index[0].date() if equity_curve is not None and not equity_curve.empty else None,
-                "end_date": equity_curve.index[-1].date() if equity_curve is not None and not equity_curve.empty else None,
-                "config": config,
-            }
-            
-            # Add specific metrics
-            metric_fields = [
-                "total_return", "sharpe_ratio", "sortino_ratio", "max_drawdown",
-                "calmar_ratio", "volatility", "total_trades", "win_rate",
-                "profit_factor", "avg_win", "avg_loss", "max_win", "max_loss",
-                "avg_holding_period", "var_95", "cvar_95", "beta", "correlation",
-                "downside_volatility"
-            ]
-            
-            for field in metric_fields:
-                if field in metrics:
-                    result_data[field] = float(metrics[field])
-            
-            self.insert_data([result_data], "backtest", "results")
-        
-        return run_id
+        except Exception as e:
+            self.logger.error(f"Failed to export backtest results: {e}")
+            # Try to rollback if there's a transaction in progress
+            try:
+                if hasattr(self, 'conn') and self.conn and not self.conn.closed:
+                    self.conn.rollback()
+            except Exception as rollback_error:
+                self.logger.error(f"Error during rollback: {rollback_error}")
+            raise
+
+
