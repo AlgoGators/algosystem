@@ -1,6 +1,7 @@
 from typing import Optional, Union, List, Any, Dict
 import pandas as pd
 from datetime import datetime
+import time
 from algosystem.data.connectors.base_db_manager import BaseDBManager
 
 class InserterManager(BaseDBManager):
@@ -47,22 +48,32 @@ class InserterManager(BaseDBManager):
             self.logger.error(f"Failed to insert into {full_table}: {e}")
             return False
     
-    def get_next_run_id(self) -> int:
+    def get_next_run_id(self) -> str:
         """
-        Get the next available run_id from the backtest.results table.
+        Generate a timestamp-based run_id.
+        
+        Instead of incrementing the max run_id which assumes numeric IDs,
+        this implementation generates a timestamp-based ID that's unique
+        and compatible with text-based run_id columns.
 
         Returns:
-            int: The next available run_id
+            str: A unique timestamp-based run_id
         """
-        self._connect_psycopg2()
         try:
-            with self.conn.cursor() as cur:
-                cur.execute("SELECT COALESCE(MAX(run_id), 0) + 1 FROM backtest.results")
-                next_id = cur.fetchone()[0]
-            return next_id
+            # Generate timestamp-based ID - format: YYYYMMDD_HHMMSS_milliseconds
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            milliseconds = str(int(time.time() * 1000) % 1000).zfill(3)
+            
+            # Create a unique run_id by combining timestamp with milliseconds
+            run_id = f"{timestamp}_{milliseconds}"
+            
+            self.logger.info(f"Generated new run_id: {run_id}")
+            return run_id
+            
         except Exception as e:
-            self.logger.error(f"Error getting next run_id: {e}")
-            raise
+            self.logger.error(f"Error generating timestamp-based run_id: {e}")
+            # Fallback to a simple timestamp if something goes wrong
+            return str(int(time.time()))
     
     def export_backtest_results(
         self,
@@ -100,6 +111,9 @@ class InserterManager(BaseDBManager):
             import json
             config_json = json.dumps(config) if config is not None else None
             hyperparameters_json = json.dumps(hyperparameters) if hyperparameters is not None else None
+            
+            # Convert the run_id to string if it isn't already
+            run_id = str(run_id)
             
             # FIRST: Insert metadata record
             metadata_data = {
