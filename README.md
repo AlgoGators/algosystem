@@ -9,7 +9,7 @@
 
 Transform your trading strategy performance analysis with professional-grade dashboards that rival institutional trading platforms.
 
-![AlgoSystem Dashboard Preview](https://via.placeholder.com/800x400/2c3e50/ffffff?text=AlgoSystem+Dashboard+Preview)
+![AlgoSystem Dashboard Preview](example/dashboard.html)
 
 ## ✨ Features
 
