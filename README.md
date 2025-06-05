@@ -202,7 +202,7 @@ pytest
 
 ## 📖 License & Usage Terms
 
-trade-ngin is licensed under the [GPL v3](https://www.gnu.org/licenses/gpl-3.0) License. See LICENSE file for details.
+AlgoSystem is licensed under the [GPL v3](https://www.gnu.org/licenses/gpl-3.0) License. See LICENSE file for details.
 
 ## 📚 Citing
 
