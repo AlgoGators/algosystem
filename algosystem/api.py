@@ -655,7 +655,6 @@ class AlgoSystem:
 
         return comparison_df
 
-
 # Convenience function for quick access
 def quick_backtest(data, benchmark=None, **kwargs):
     """

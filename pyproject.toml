@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "algosystem"
-version = "0.1.2"
+version = "0.1.3"
 description = "A batteries-included pythonic library for AlgoGators members"
 authors = ["AlgoGators Team <team@algogators.org>"]
 homepage = "https://github.com/algogators/algosystem"
