@@ -5,189 +5,127 @@
 [![License: GPL v3](https://img.shields.io/badge/License-MIT-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Built with Poetry](https://img.shields.io/badge/built%20with-Poetry-purple)](https://python-poetry.org/)
 
-**A batteries-included Python library for algorithmic trading backtesting and beautiful, interactive dashboard visualization.**
+**AlgoGators professional algorithmic backtesting and dashboard visualization library.**
 
-Transform your trading strategy performance analysis with professional-grade dashboards that rival institutional trading platforms.
+## 🚀 Quick Start
 
-![AlgoSystem Dashboard Preview](example/dashboard.html)
-
-## ✨ Features
-
-- 🔄 **Simple Backtesting**: Run backtests with just a price series
-- 📊 **Interactive Dashboards**: Generate beautiful HTML dashboards with 20+ metrics and charts
-- 🎨 **Visual Dashboard Editor**: Drag-and-drop interface for customizing dashboard layouts
-- 📈 **Comprehensive Analytics**: Performance metrics, risk analysis, rolling statistics, and more
-- 🆚 **Benchmark Comparison**: Compare strategies against market benchmarks with alpha/beta analysis
-- ⚙️ **Flexible Configuration**: JSON-based system for complete dashboard customization
-- 💻 **CLI Tools**: Command-line interface for quick dashboard generation
-- 🌐 **Standalone Dashboards**: Export self-contained HTML files that work offline
-
-## 📦 Installation
-
-### Quick Install (Recommended)
-
+### Installation
 ```bash
 pip install algosystem
 ```
 
-### Requirements
-
-- Python 3.9 or newer
-- Core dependencies: pandas, numpy, matplotlib
-- All other dependencies are installed automatically
-
-## 🚀 Quick Start
-
-### Command Line Usage
-
-Generate a dashboard from CSV data:
-
+### Command Line
 ```bash
+# Generate dashboard from CSV
 algosystem dashboard strategy.csv
-```
 
-Launch the visual dashboard editor:
+# With benchmark comparison
+algosystem dashboard strategy.csv --benchmark sp500
 
-```bash
+# Launch visual editor
 algosystem launch
 ```
 
 ### Python API
-
 ```python
 import pandas as pd
 from algosystem.api import quick_backtest
 
-# Load your data (CSV with date index and price column)
+# Load strategy data (CSV with date index and price column)
 data = pd.read_csv('strategy.csv', index_col=0, parse_dates=True)
 
-# Run backtest and show results
+# Run backtest and show dashboard
 engine = quick_backtest(data)
 ```
 
-## 📚 Documentation
+## 📊 Dashboard Features
 
-Full documentation is available in the `docs/` directory:
+### Available Metrics (20+)
+- **Performance**: Total Return, Annualized Return, Volatility
+- **Risk**: Max Drawdown, VaR, CVaR, Skewness
+- **Ratios**: Sharpe, Sortino, Calmar, Information Ratio
+- **Benchmark**: Alpha, Beta, Correlation, Tracking Error
 
-- [Installation and Getting Started](docs/installation.md)
-- [CLI Documentation](docs/cli.md)
-- [Python API Reference](docs/api.md)
-- [Dashboard Customization Guide](docs/dashboard.md)
-- [Benchmark Integration Guide](docs/benchmarks.md)
-- [Data Connectors Guide](docs/data_connectors.md)
+### Available Charts (15+)
+- **Core**: Equity Curve, Drawdown, Daily Returns
+- **Rolling**: Sharpe, Sortino, Volatility, Skewness
+- **Analysis**: Monthly Returns, Yearly Returns, Benchmark Comparison
 
-## 🔍 Key Components
+### Built-in Benchmarks (40+)
+- **Indices**: S&P 500, NASDAQ, DJIA, Russell 2000
+- **International**: Europe, UK, Japan, China, Emerging Markets
+- **Sectors**: Technology, Healthcare, Financials, Energy
+- **Assets**: Gold, Real Estate, Commodities, Bonds
 
-### Engine Class
+## 📖 Documentation
 
-Core backtesting engine for running tests:
+- [Installation Guide](INSTALLATION.md)
+- [CLI Reference](CLI_GUIDE.md)
+- [Python API](API_GUIDE.md)
+- [Dashboard Customization](DASHBOARD_GUIDE.md)
+- [Benchmark Integration](BENCHMARK_GUIDE.md)
 
-```python
-from algosystem.backtesting import Engine
+## 🔧 Example Usage
 
-engine = Engine(
-    data=price_series,
-    benchmark=benchmark_series,  # Optional
-    start_date='2022-01-01',     # Optional
-    end_date='2022-12-31'        # Optional
-)
-results = engine.run()
-```
-
-### API Class
-
-High-level interface with more functionality:
-
+### Complete Workflow
 ```python
 from algosystem.api import AlgoSystem
 
-# Run backtest
-engine = AlgoSystem.run_backtest(price_series, benchmark_series)
+# Load data and benchmark
+strategy_data = pd.read_csv('strategy.csv', index_col=0, parse_dates=True)
+benchmark_data = AlgoSystem.get_benchmark('sp500')
 
-# Print formatted results
+# Run backtest
+engine = AlgoSystem.run_backtest(strategy_data, benchmark_data)
+
+# Print results
 AlgoSystem.print_results(engine, detailed=True)
 
 # Generate dashboard
 AlgoSystem.generate_dashboard(engine, open_browser=True)
+
+# Export data
+AlgoSystem.export_data(engine, 'results.csv')
 ```
 
-### Dashboard Configuration
-
-Create custom dashboards via JSON configuration:
-
-```python
-from algosystem.api import AlgoSystem
-
-# Load and modify configuration
-config = AlgoSystem.load_config()
-config["layout"]["title"] = "My Custom Dashboard"
-
-# Save configuration
-AlgoSystem.save_config(config, "my_config.json")
-
-# Use configuration for dashboard
-engine.generate_dashboard(config_path="my_config.json")
-```
-
-## 🔧 Common Use Cases
-
-### Basic Backtesting
-
+### Engine-Level Control
 ```python
 from algosystem.backtesting import Engine
 
-# Run backtest
-engine = Engine(price_series)
+engine = Engine(
+    data=strategy_data,
+    benchmark=benchmark_data,
+    start_date='2022-01-01',
+    end_date='2022-12-31'
+)
+
 results = engine.run()
-
-# Print key metrics
-print(f"Total Return: {results['returns']:.2%}")
-print(f"Sharpe Ratio: {results['metrics']['sharpe_ratio']:.2f}")
-print(f"Max Drawdown: {results['metrics']['max_drawdown']:.2%}")
+dashboard_path = engine.generate_dashboard()
 ```
 
-### Benchmark Comparison
+## 📋 Data Format
 
-```python
-from algosystem.data.benchmark import fetch_benchmark_data
+Your CSV should have:
+- Date column as index (YYYY-MM-DD)
+- Price/value column representing portfolio value
 
-# Fetch S&P 500 data
-sp500_data = fetch_benchmark_data('sp500')
-
-# Run backtest with benchmark
-engine = Engine(price_series, benchmark=sp500_data)
-results = engine.run()
-
-# Print benchmark comparison metrics
-print(f"Alpha: {results['metrics']['alpha']:.2%}")
-print(f"Beta: {results['metrics']['beta']:.2f}")
+```csv
+Date,Strategy
+2022-01-01,100000.00
+2022-01-02,100500.00
+2022-01-03,99800.00
 ```
 
-### Standalone Dashboard
+## 🛠️ Optional Features
 
-```python
-# Generate standalone HTML dashboard
-dashboard_path = engine.generate_standalone_dashboard('my_dashboard.html')
-```
-
-## 🛠️ Troubleshooting
-
-### Package Not Found
-
-If you see `ImportError: No module named 'algosystem'`:
-
-1. Verify installation: `pip list | grep algosystem`
-2. Try reinstalling: `pip install --upgrade --force-reinstall algosystem`
-
-### Configuration Issues
-
-Reset to default configuration:
+### Database Export
 ```bash
-algosystem reset-user-config
+pip install psycopg2-binary
 ```
 
-### Quick Start for Contributors
+## 📚 License
 
+<<<<<<< HEAD
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/algosystem.git
@@ -216,3 +154,6 @@ If you use AlgoSystem in your research, please cite:
   year = {2025},
 }
 ```
+=======
+GPL v3 License. See LICENSE file for details.
+>>>>>>> b65a78d (docs: 📜)

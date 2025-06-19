@@ -350,13 +350,8 @@ class Engine:
             if self.results is None:
                 raise ValueError("No results available to export to database.")
 
-        try:
-            from algosystem.data.connectors.db_manager import DBManager
-        except ImportError:
-            raise ImportError(
-                "Required database modules not found. Check your installation and database configuration."
-            )
-
+        from algosystem.data.connectors.db_manager import DBManager
+        
         # Create DB manager instance
         db = DBManager()
 
