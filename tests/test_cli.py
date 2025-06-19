@@ -42,7 +42,7 @@ class TestCLICommands:
         result = self.runner.invoke(cli, ["create-config", "--help"])
 
         assert result.exit_code == 0
-        assert "output" in result.output
+        assert "OUTPUT_PATH" in result.output
 
     def test_show_config_command_help(self):
         """Test show-config command help."""
