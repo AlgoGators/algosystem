@@ -14,12 +14,7 @@ pip install algosystem
 
 ### With Optional Features
 ```bash
-# All features
-pip install algosystem[all]
-
-# Specific features
-pip install algosystem[database]  # PostgreSQL support
-pip install algosystem[web]       # Dashboard editor
+pip install algosystem
 ```
 
 ### Development Installation
