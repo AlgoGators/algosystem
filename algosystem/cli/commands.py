@@ -7,7 +7,7 @@ import json
 import os
 import sys
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import click
 import numpy as np
@@ -1179,8 +1179,6 @@ def compare_benchmarks(
         click.echo(traceback.format_exc())
         sys.exit(1)
 
-
-# Add a test command to simulate a basic workflow
 @cli.command()
 @click.option(
     "--output-dir",
@@ -1202,7 +1200,7 @@ def compare_benchmarks(
 @click.option(
     "--open-browser",
     is_flag=True,
-    default=False,
+    default=True,
     help="Open the dashboard in a browser when done",
 )
 def test(output_dir, periods, benchmark, open_browser):
@@ -1213,9 +1211,7 @@ def test(output_dir, periods, benchmark, open_browser):
     It creates a simulated strategy and benchmark, then generates a dashboard.
     """
     import os
-
     import numpy as np
-
     from algosystem.backtesting.dashboard.dashboard_generator import generate_dashboard
     from algosystem.backtesting.engine import Engine
 
@@ -1224,32 +1220,67 @@ def test(output_dir, periods, benchmark, open_browser):
     # Create a directory for test output
     os.makedirs(output_dir, exist_ok=True)
 
-    # Generate random data for a simulated strategy
-    dates = pd.date_range(end=datetime.now(), periods=periods, freq="B")
+    # Try to get benchmark data first to ensure date alignment
+    benchmark_data = None
+    if benchmark and benchmark.lower() != "none":
+        try:
+            click.echo(f"Loading benchmark data for {benchmark}...")
+            # Get benchmark data for a longer period to ensure coverage
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=periods * 2)  # Get extra data
+            
+            benchmark_data = fetch_benchmark_data(
+                benchmark, start_date=start_date, end_date=end_date
+            )
+            click.echo(f"Loaded benchmark data with {len(benchmark_data)} rows")
+            
+            # Use benchmark dates for strategy generation to ensure alignment
+            if len(benchmark_data) >= periods:
+                # Take the last 'periods' days from benchmark data
+                benchmark_dates = benchmark_data.index[-periods:]
+                click.echo(f"Using benchmark dates for alignment: {benchmark_dates[0].date()} to {benchmark_dates[-1].date()}")
+            else:
+                click.echo(f"Warning: Benchmark data has only {len(benchmark_data)} days, need {periods}")
+                # Fall back to business day generation
+                benchmark_dates = pd.date_range(end=datetime.now(), periods=periods, freq="B")
+                
+        except Exception as e:
+            click.echo(f"Warning: Error fetching benchmark data: {str(e)}")
+            click.echo("Continuing without benchmark data...")
+            benchmark_data = None
+            benchmark_dates = pd.date_range(end=datetime.now(), periods=periods, freq="B")
+    else:
+        # No benchmark requested
+        benchmark_dates = pd.date_range(end=datetime.now(), periods=periods, freq="B")
+        click.echo("No benchmark requested")
+
+    # Generate strategy data using the same dates as benchmark (or business days if no benchmark)
     np.random.seed(42)  # For reproducibility
 
     # Strategy returns with positive drift
     returns = np.random.normal(
-        0.0005, 0.01, periods
-    )  # 0.05% daily return, 1% volatility
-    strategy_prices = 100 * (1 + pd.Series(returns, index=dates)).cumprod()
+        0.005, 0.01, len(benchmark_dates)
+    )  # 0.5% daily return, 1% volatility
+    strategy_prices = 100 * (1 + pd.Series(returns, index=benchmark_dates)).cumprod()
 
     # Save strategy data to CSV
     strategy_file = os.path.join(output_dir, "strategy.csv")
     strategy_prices.to_csv(strategy_file)
     click.echo(f"Strategy data saved to {strategy_file}")
 
-    # Try to get benchmark data
-    benchmark_data = None
-    try:
-        click.echo(f"Loading benchmark data for {benchmark}...")
-        benchmark_data = fetch_benchmark_data(
-            benchmark, start_date=dates[0], end_date=dates[-1]
-        )
-        click.echo(f"Loaded benchmark data with {len(benchmark_data)} rows")
-    except Exception as e:
-        click.echo(f"Warning: Error fetching benchmark data: {str(e)}")
-        click.echo("Continuing without benchmark data...")
+    # If we have benchmark data, align it to the same dates
+    if benchmark_data is not None:
+        # Align benchmark data to strategy dates
+        aligned_benchmark = benchmark_data.reindex(strategy_prices.index, method='ffill')
+        # Remove any NaN values that might occur from alignment
+        valid_dates = aligned_benchmark.dropna().index
+        if len(valid_dates) < len(strategy_prices) * 0.8:  # Less than 80% overlap
+            click.echo(f"Warning: Poor date alignment ({len(valid_dates)}/{len(strategy_prices)} days). Continuing without benchmark.")
+            benchmark_data = None
+        else:
+            benchmark_data = aligned_benchmark.dropna()
+            strategy_prices = strategy_prices.reindex(benchmark_data.index)
+            click.echo(f"Aligned data: {len(strategy_prices)} strategy days, {len(benchmark_data)} benchmark days")
 
     # Run backtest and generate dashboard
     click.echo("Running backtest...")
@@ -1264,9 +1295,9 @@ def test(output_dir, periods, benchmark, open_browser):
     click.echo(f"Max Drawdown: {metrics.get('max_drawdown', 0) * 100:.2f}%")
     click.echo(f"Sharpe Ratio: {metrics.get('sharpe_ratio', 0):.2f}")
 
-    if "alpha" in metrics:
+    if "alpha" in metrics and not (metrics.get('alpha') == 0 or pd.isna(metrics.get('alpha'))):
         click.echo(f"Alpha: {metrics.get('alpha', 0) * 100:.2f}%")
-    if "beta" in metrics:
+    if "beta" in metrics and not (metrics.get('beta') == 0 or pd.isna(metrics.get('beta'))):
         click.echo(f"Beta: {metrics.get('beta', 0):.2f}")
 
     # Generate dashboard
@@ -1282,7 +1313,6 @@ def test(output_dir, periods, benchmark, open_browser):
         click.echo(f"  {os.path.abspath(dashboard_path)}")
 
     return dashboard_path
-
 
 if __name__ == "__main__":
     cli()
