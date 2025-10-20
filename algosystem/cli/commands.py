@@ -525,6 +525,138 @@ def create_config(output_path, based_on, default, user):
     "--output-file",
     "-o",
     type=click.Path(),
+    default="backtest_exports",
+    help="Path to save the dashboard HTML file (default: ./dashboard.html)",
+)
+@click.option(
+    "--benchmark",
+    "-b",
+    help="Benchmark to use. Can be a file path or an alias (e.g., 'sp500', 'nasdaq')",
+)
+@click.option(
+    "--start-date",
+    help="Start date for the backtest (YYYY-MM-DD). Default: first date in input data",
+)
+@click.option(
+    "--end-date",
+    help="End date for the backtest (YYYY-MM-DD). Default: last date in input data",
+)
+@click.option(
+    "--force-refresh",
+    is_flag=True,
+    default=False,
+    help="Force refresh of benchmark data even if cached data exists",
+)
+def IP(
+    input_file,
+    output_file,
+    benchmark,
+    start_date,
+    end_date,
+    force_refresh
+):
+    """
+    Create an IPython Notebook slide from the dashboard configuration.
+    """
+
+    from algosystem.backtesting.dashboard.utils.ip_slide_generator import export_backtest_to_csv
+    from algosystem.backtesting.engine import Engine
+
+    try:
+        # Load data
+        print(f"Loading data from {input_file}...")
+        data = pd.read_csv(input_file, index_col=0, parse_dates=True)
+        
+        # Load benchmark data if provided
+        benchmark_data = None
+        if benchmark:
+            # Check if it's a file path
+            if os.path.exists(benchmark):
+                click.echo(f"Loading benchmark data from file: {benchmark}...")
+                benchmark_data = pd.read_csv(benchmark, index_col=0, parse_dates=True)
+                if (
+                    isinstance(benchmark_data, pd.DataFrame)
+                    and benchmark_data.shape[1] > 1
+                ):
+                    benchmark_data = benchmark_data.iloc[:, 0]  # Use first column
+                click.echo(f"Loaded benchmark data with {len(benchmark_data)} rows")
+            else:
+                # Try to load as an alias
+                click.echo(f"Loading benchmark data for alias: {benchmark}...")
+                try:
+                    benchmark_data = fetch_benchmark_data(
+                        benchmark,
+                        start_date=data.index[0] if not start_date else start_date,
+                        end_date=data.index[-1] if not end_date else end_date,
+                        force_refresh=force_refresh,
+                    )
+                    click.echo(f"Loaded benchmark data with {len(benchmark_data)} rows")
+                except ImportError:
+                    click.echo(
+                        "Warning: Could not import benchmark module. Make sure the 'yfinance' package is installed."
+                    )
+                    click.echo("Continuing without benchmark data...")
+                except Exception as e:
+                    click.echo(f"Warning: Error fetching benchmark data: {str(e)}")
+                    click.echo("Continuing without benchmark data...")
+        elif not benchmark:
+            # If no benchmark specified, use S&P 500 by default
+            try:
+                click.echo("Loading default benchmark (S&P 500)...")
+                benchmark_data = fetch_benchmark_data(
+                    DEFAULT_BENCHMARK,
+                    start_date=data.index[0] if not start_date else start_date,
+                    end_date=data.index[-1] if not end_date else end_date,
+                    force_refresh=force_refresh,
+                )
+                click.echo(
+                    f"Loaded S&P 500 benchmark data with {len(benchmark_data)} rows"
+                )
+            except ImportError:
+                click.echo(
+                    "Warning: Could not import benchmark module. Make sure the 'yfinance' package is installed."
+                )
+                click.echo("Continuing without benchmark data...")
+            except Exception as e:
+                click.echo(f"Warning: Error fetching S&P 500 benchmark data: {str(e)}")
+                click.echo("Continuing without benchmark data...")
+
+        engine = Engine(
+            data=data,
+            benchmark=benchmark_data,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        results = engine.run()
+        print("Backtest completed successfully")
+
+        from pprint import pprint
+        
+        paths = export_backtest_to_csv(results, output_dir='backtest_exports', prefix="backtest")
+        
+        print("Exported backtest data to the following files:")
+        pprint(paths)
+        
+        return 0
+        
+    except FileNotFoundError as e:
+        print(f"❌ Error: File not found - {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+@cli.command()
+@click.argument("input_file", type=click.Path(exists=True))
+@click.option(
+    "--output-file",
+    "-o",
+    type=click.Path(),
     default="./dashboard.html",
     help="Path to save the dashboard HTML file (default: ./dashboard.html)",
 )
@@ -1203,6 +1335,7 @@ def compare_benchmarks(
     default=True,
     help="Open the dashboard in a browser when done",
 )
+
 def test(output_dir, periods, benchmark, open_browser):
     """
     Run a quick test with simulated data and generate a dashboard.

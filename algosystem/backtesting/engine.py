@@ -149,8 +149,7 @@ class Engine:
             "equity": equity_series,
             "initial_capital": self.initial_capital,
             "final_capital": equity_series.iloc[-1],
-            "returns": (equity_series.iloc[-1] - self.initial_capital)
-            / self.initial_capital,
+            "returns": (equity_series.iloc[-1] - self.initial_capital) / self.initial_capital,
             "data": self.price_series,
             "start_date": self.start_date,
             "end_date": self.end_date,
