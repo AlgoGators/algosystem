@@ -23,6 +23,8 @@ __pycache__
 # data
 /plots
 dashboard.html
+charts/
+backtest_exports/
 
 # dev files
 nd.json 
