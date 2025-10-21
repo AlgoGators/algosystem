@@ -437,8 +437,11 @@ def export_backtest_to_csv(results, output_dir="backtest_exports", prefix="backt
 
     from algosystem.backtesting.dashboard.utils.create_pptx import create_backtest_pptx
 
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    template_path = os.path.join(base_dir, "template.pptx")
+
     create_backtest_pptx(
-        template_path="algosystem/backtesting/dashboard/utils/template.pptx",
+        template_path=template_path,
         output_dir="backtest_exports",
         charts_dir="charts",
         output_path="backtest_presentation.pptx",

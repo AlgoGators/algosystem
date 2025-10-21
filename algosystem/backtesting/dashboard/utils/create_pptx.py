@@ -251,8 +251,11 @@ def add_four_chart_slide(
 
 # ---------- main ----------
 
+base_dir = os.path.dirname(os.path.abspath(__file__))
+template_path = os.path.join(base_dir, "template.pptx")
+
 def create_backtest_pptx(
-    template_path="algosystem/backtesting/dashboard/utils/template.pptx",
+    template_path=template_path,
     output_dir="backtest_exports",
     charts_dir="charts",
     output_path="backtest_presentation.pptx",
@@ -311,8 +314,11 @@ def create_backtest_pptx(
     print(f"Total slides: {len(prs.slides)}")
 
 if __name__ == "__main__":
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    template_path = os.path.join(base_dir, "template.pptx")
+
     create_backtest_pptx(
-        template_path="algosystem/backtesting/dashboard/utils/template.pptx",
+        template_path=template_path,
         output_dir="backtest_exports",
         charts_dir="charts",
         output_path="backtest_presentation.pptx",
