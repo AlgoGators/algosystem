@@ -13,6 +13,7 @@ poetry.lock
 coverage.xml
 htmlcov
 test_dashboard/
+temp.py
 
 # cache
 __pycache__
