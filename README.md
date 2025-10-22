@@ -24,6 +24,9 @@ algosystem dashboard strategy.csv --benchmark sp500
 
 # Launch visual editor
 algosystem launch
+
+# Create IP-ready results
+algosystem ip strategy.csv --benchmark sp500
 ```
 
 ### Python API
