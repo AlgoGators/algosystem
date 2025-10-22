@@ -26,6 +26,7 @@ __pycache__
 dashboard.html
 charts/
 backtest_exports/
+backtest_presentation.pptx
 
 # dev files
 nd.json 

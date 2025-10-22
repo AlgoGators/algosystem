@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "algosystem"
-version = "0.1.4"
+version = "0.1.5"
 description = "A batteries-included pythonic library for AlgoGators members"
 authors = ["AlgoGators Team <team@algogators.org>"]
 homepage = "https://github.com/algogators/algosystem"
@@ -35,7 +35,6 @@ pyyaml = ">=5.4.0"
 weasyprint = ">=53.0"
 markdown = ">=3.3.4"
 quantstats = "^0.0.64"
-pyqtgraph = "^0.13.7"
 pyarrow = "^19.0.1"
 rich = "^14.0.0"
 flask = "^3.1.0"

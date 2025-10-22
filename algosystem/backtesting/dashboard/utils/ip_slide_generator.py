@@ -6,6 +6,7 @@ Enhanced IP Slide Generator with Professional Plotly Chart Styling
 - One combined drawdown chart (strategy + benchmark).
 - Remove drawdown duration plot.
 - Add Rolling Calmar + Rolling Var to risk charts/exports.
+- Bigger text (2x) + legend inside for strategy vs benchmark charts.
 """
 
 from __future__ import annotations
@@ -40,6 +41,13 @@ _WIDTH_MULTIPLIER = 1.25
 _BASE_W, _BASE_H = 1200, 600
 _FIG_W, _FIG_H = int(_BASE_W * _WIDTH_MULTIPLIER), _BASE_H  # 1500 x 600
 _EXPORT_SCALE = 3  # higher DPI via kaleido scaling
+
+# --- Text scaling (2x = +100%) ---
+_TEXT_SCALE = 2.0
+_TITLE_SIZE = int(20 * _TEXT_SCALE)
+_AXIS_TITLE_SIZE = int(12 * _TEXT_SCALE)
+_TICK_SIZE = int(11 * _TEXT_SCALE)
+_LEGEND_FONT_SIZE = int(12 * _TEXT_SCALE)
 
 # ---------- Utils ----------
 
@@ -97,22 +105,22 @@ def _make_fig_base(title: str, y_is_pct: bool) -> go.Figure:
         colorway=_COLORWAY,
         title=dict(
             text=title, x=0.03, xanchor="left",
-            font=dict(size=30, family=_FONT_FAMILY, color=_TITLE_COLOR),
+            font=dict(size=_TITLE_SIZE, family=_FONT_FAMILY, color=_TITLE_COLOR),
         ),
         margin=dict(l=60, r=30, t=60, b=60),
         hovermode="x unified",
         legend=dict(
             orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0.0,
             bgcolor="rgba(255,255,255,0.8)", bordercolor="#d1d5db", borderwidth=1,
-            font=dict(size=12, family=_FONT_FAMILY),
+            font=dict(size=_LEGEND_FONT_SIZE, family=_FONT_FAMILY),
             itemclick="toggleothers", itemdoubleclick="toggle",
         ),
         plot_bgcolor=_BG_COLOR, paper_bgcolor=_BG_COLOR,
         width=_FIG_W, height=_FIG_H,
     )
     fig.update_xaxes(
-        title=dict(text="Date", font=dict(size=12, color=_AXIS_COLOR, family=_FONT_FAMILY)),
-        tickfont=dict(size=11, color=_AXIS_COLOR, family=_FONT_FAMILY),
+        title=dict(text="Date", font=dict(size=_AXIS_TITLE_SIZE, color=_AXIS_COLOR, family=_FONT_FAMILY)),
+        tickfont=dict(size=_TICK_SIZE, color=_AXIS_COLOR, family=_FONT_FAMILY),
         showgrid=True, gridcolor=_GRID_COLOR, linecolor="#cbd5e1", zeroline=False,
         rangeselector=dict(
             buttons=[
@@ -130,10 +138,10 @@ def _make_fig_base(title: str, y_is_pct: bool) -> go.Figure:
     fig.update_yaxes(
         title=dict(
             text="Value (%)" if y_is_pct else "Value",
-            font=dict(size=12, color=_AXIS_COLOR, family=_FONT_FAMILY),
+            font=dict(size=_AXIS_TITLE_SIZE, color=_AXIS_COLOR, family=_FONT_FAMILY),
         ),
         tickformat=".0%" if y_is_pct else ",",
-        tickfont=dict(size=11, color=_AXIS_COLOR, family=_FONT_FAMILY),
+        tickfont=dict(size=_TICK_SIZE, color=_AXIS_COLOR, family=_FONT_FAMILY),
         showgrid=True, gridcolor=_GRID_COLOR, linecolor="#cbd5e1", zeroline=False,
     )
     return fig
@@ -195,6 +203,16 @@ def _save_comparison_chart(
                       dash="solid" if not is_benchmark else "dash"),
             hovertemplate="%{x|%Y-%m-%d}<br>%{y}<extra>"+col+"</extra>",
         ))
+    # Place legend inside for strategy vs benchmark charts
+    fig.update_layout(
+        legend=dict(
+            x=0.02, y=0.98, xanchor="left", yanchor="top",
+            orientation="v",
+            bgcolor="rgba(255,255,255,0.8)",
+            bordercolor="#d1d5db", borderwidth=1,
+            font=dict(size=_LEGEND_FONT_SIZE, family=_FONT_FAMILY),
+        )
+    )
     return _fig_to_png(fig, outfile)
 
 
@@ -203,9 +221,10 @@ def _save_drawdown_chart(
 ) -> str:
     fig = _make_fig_base(title, y_is_pct=True)
     fig.update_yaxes(title=dict(text="Drawdown (%)",
-                                font=dict(size=12, color=_AXIS_COLOR, family=_FONT_FAMILY)),
+                                font=dict(size=_AXIS_TITLE_SIZE, color=_AXIS_COLOR, family=_FONT_FAMILY)),
                      tickformat=".0%")
 
+    multi_series = False
     if isinstance(series_or_df, pd.Series):
         name = series_or_df.name or "Drawdown"
         fig.add_trace(go.Scatter(
@@ -214,7 +233,9 @@ def _save_drawdown_chart(
             hovertemplate="%{x|%Y-%m-%d}<br>%{y:.1%}<extra>"+name+"</extra>",
         ))
     else:
-        for col in series_or_df.columns:
+        cols = list(series_or_df.columns)
+        multi_series = len(cols) > 1
+        for col in cols:
             is_benchmark = "benchmark" in col.lower()
             fig.add_trace(go.Scatter(
                 x=series_or_df.index, y=series_or_df[col], name=col,
@@ -234,6 +255,18 @@ def _save_drawdown_chart(
             fig.update_yaxes(range=[min(ymin - pad, -0.1), max(ymax + pad, 0.05)])
     except Exception:
         pass
+
+    # Legend inside when comparing strategy vs benchmark
+    if multi_series:
+        fig.update_layout(
+            legend=dict(
+                x=0.02, y=0.98, xanchor="left", yanchor="top",
+                orientation="v",
+                bgcolor="rgba(255,255,255,0.8)",
+                bordercolor="#d1d5db", borderwidth=1,
+                font=dict(size=_LEGEND_FONT_SIZE, family=_FONT_FAMILY),
+            )
+        )
 
     return _fig_to_png(fig, outfile)
 

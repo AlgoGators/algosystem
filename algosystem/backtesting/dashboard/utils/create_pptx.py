@@ -25,7 +25,7 @@ from typing import Iterable, List, Tuple, Optional
 class CONFIG:
     TABLE_HEADER_COLOR = RGBColor(255, 108, 0)     # your orange
     TABLE_ZEBRA_COLOR  = RGBColor(242, 245, 249)
-    FONT_TITLE  = Pt(28)
+    FONT_TITLE  = Pt(20)
     FONT_HEADER = Pt(12)
     FONT_CELL   = Pt(11)
 
@@ -169,32 +169,41 @@ def _clear_slide_except_footer(slide):
             pass
 
 def create_summary_on_first_slide(prs: Presentation, summary_df: pd.DataFrame):
-    slide0 = prs.slides[0]  # use the actual first slide
-    # Keep footer textbox, clear other shapes
+    slide0 = prs.slides[0]
     _clear_slide_except_footer(slide0)
-
-    # Title
     _add_title(slide0, "Backtesting Summary Statistics")
 
-    # Build rows
-    preferred = [
-        'Total Return', 'Annualized Return', 'Max Drawdown', 'Volatility',
-        'Sharpe Ratio', 'Sortino Ratio', 'Calmar Ratio', 'Var 95',
-        'Win Rate', 'Positive Days', 'Negative Days', 'Best Month', 'Worst Month',
-        'Alpha', 'Beta', 'Correlation',
-        'Start Date', 'End Date'
+    # --- Standard, conventional order (only include if present) ---
+    STANDARD_ORDER = [
+        # Timeline
+        "Start Date", "End Date",
+        # Returns
+        "Total Return", "Annualized Return",
+        # Risk (level)
+        "Volatility", "Max Drawdown", "Var 95",
+        # Risk-adjusted
+        "Sharpe Ratio", "Sortino Ratio", "Calmar Ratio",
+        # Hit stats / distribution
+        "Win Rate", "Positive Days", "Negative Days", "Best Month", "Worst Month",
+        # Factor / regression
+        "Alpha", "Beta", "Correlation",
     ]
-    present = set(summary_df['Metric'].astype(str))
-    rows = [(m, str(summary_df.loc[summary_df['Metric'] == m, 'Value'].iloc[0]))
-            for m in preferred if m in present]
-    if not rows:
-        rows = [(str(m), str(v)) for m, v in summary_df[['Metric', 'Value']].itertuples(index=False)]
 
-    # Split into two
-    mid = (len(rows) + 1) // 2
-    left_rows, right_rows = rows[:mid], rows[mid:]
+    present = set(summary_df["Metric"].astype(str))
+    ordered_rows: List[Tuple[str, str]] = []
+    for m in STANDARD_ORDER:
+        if m in present:
+            v = str(summary_df.loc[summary_df["Metric"] == m, "Value"].iloc[0])
+            ordered_rows.append((m, v))
 
-    # Center two tables
+    # Fallback: if nothing matched, keep CSV order
+    if not ordered_rows:
+        ordered_rows = [(str(m), str(v)) for m, v in summary_df[["Metric", "Value"]].itertuples(index=False)]
+
+    # Split into two columns, centered
+    mid = (len(ordered_rows) + 1) // 2
+    left_rows, right_rows = ordered_rows[:mid], ordered_rows[mid:]
+
     slide_w = prs.slide_width
     tbl_w = CONFIG.TABLE_WIDTH
     gap = CONFIG.TABLE_GAP
@@ -226,17 +235,12 @@ def add_four_chart_slide(
     chart_paths: List[str] | List[Tuple[str, str]],
     template_index: int = 0,
 ):
-    # Use same layout as slide 0 to inherit template elements
     base_layout = prs.slides[template_index].slide_layout if len(prs.slides) > template_index else prs.slide_layouts[6]
     slide = prs.slides.add_slide(base_layout)
 
-    # Ensure the bottom-right textbox exists on this slide
     _ensure_footer_on_slide(prs.slides[0], slide)
-
-    # Title
     _add_title(slide, title)
 
-    # Normalize & take up to 4 existing files
     paths = []
     for item in chart_paths[:4]:
         paths.append(item[0] if isinstance(item, (list, tuple)) else str(item))
@@ -261,11 +265,9 @@ def create_backtest_pptx(
     output_path="backtest_presentation.pptx",
     prefix="backtest"
 ):
-    # Load template (must have the bottom-right textbox on slide 0)
     prs = Presentation(template_path) if os.path.exists(template_path) else Presentation()
     print(f"Using template: {template_path}" if os.path.exists(template_path) else "Template not found, creating new presentation")
 
-    # Summary CSV
     summary_pattern = os.path.join(output_dir, f"{prefix}_summary_*.csv")
     summary_file = find_latest_file(summary_pattern)
     if not summary_file:
@@ -275,11 +277,9 @@ def create_backtest_pptx(
     print(f"Loading summary: {summary_file}")
     summary_df = pd.read_csv(summary_file)
 
-    # Slide 1: Summary rendered ON the template's first slide (no extra slide)
     print("Creating summary on first slide...")
     create_summary_on_first_slide(prs, summary_df)
 
-    # Slide 2: Performance
     print("Creating slide 2: Performance Comparison...")
     perf_images = [
         os.path.join(charts_dir, "equity_curves.png"),
@@ -289,7 +289,6 @@ def create_backtest_pptx(
     ]
     add_four_chart_slide(prs, "Performance Comparison: Strategy vs Benchmark", perf_images, template_index=0)
 
-    # Slide 3: Rolling Risk I
     print("Creating slide 3: Rolling Risk Metrics I...")
     risk_images_1 = [
         os.path.join(charts_dir, "risk_rolling_sharpe.png"),
@@ -299,12 +298,10 @@ def create_backtest_pptx(
     ]
     add_four_chart_slide(prs, "Rolling Risk Metrics I", risk_images_1, template_index=0)
 
-    # Slide 4: Rolling Risk II
     print("Creating slide 4: Rolling Risk Metrics II...")
     risk_images_2 = [
         os.path.join(charts_dir, "risk_rolling_var.png"),
         os.path.join(charts_dir, "risk_rolling_skew.png"),
-        os.path.join(charts_dir, "timeseries_all.png"),
         os.path.join(charts_dir, "relative_relative_performance.png"),
     ]
     add_four_chart_slide(prs, "Rolling Risk Metrics II", risk_images_2, template_index=0)
