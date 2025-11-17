@@ -446,7 +446,7 @@ def export_backtest_to_csv(results, output_dir="backtest_exports", prefix="backt
         combined_ts.index.name = 'Date'
 
         timeseries_file = os.path.join(output_dir, f"{prefix}_timeseries_{timestamp}.csv")
-        combined_ts.to_csv(timeseries_file)
+        combined_ts.to_csv(timeseries_file, date_format="%Y-%m-%d")
         exported_files['timeseries'] = timeseries_file
 
         _export_chart_specific_data(combined_ts, output_dir, prefix, timestamp, exported_files)
@@ -495,7 +495,7 @@ def _export_chart_specific_data(combined_ts, output_dir, prefix, timestamp, expo
             equity_data[col] = combined_ts[col]
     if not equity_data.empty:
         equity_file = os.path.join(output_dir, f"{prefix}_equity_curve_{timestamp}.csv")
-        equity_data.to_csv(equity_file)
+        equity_data.to_csv(equity_file, date_format="%Y-%m-%d")
         exported_files['equity_curve'] = equity_file
 
     # Drawdown (exclude duration)
@@ -505,7 +505,7 @@ def _export_chart_specific_data(combined_ts, output_dir, prefix, timestamp, expo
             drawdown_data[col] = combined_ts[col]
     if not drawdown_data.empty:
         drawdown_file = os.path.join(output_dir, f"{prefix}_drawdown_{timestamp}.csv")
-        drawdown_data.to_csv(drawdown_file)
+        drawdown_data.to_csv(drawdown_file, date_format="%Y-%m-%d")
         exported_files['drawdown'] = drawdown_file
 
     # Risk Metrics Over Time (include Rolling Calmar & Rolling Var)
@@ -517,7 +517,7 @@ def _export_chart_specific_data(combined_ts, output_dir, prefix, timestamp, expo
             risk_data[col] = combined_ts[col]
     if not risk_data.empty:
         risk_file = os.path.join(output_dir, f"{prefix}_risk_metrics_{timestamp}.csv")
-        risk_data.to_csv(risk_file)
+        risk_data.to_csv(risk_file, date_format="%Y-%m-%d")
         exported_files['risk_metrics'] = risk_file
 
 
