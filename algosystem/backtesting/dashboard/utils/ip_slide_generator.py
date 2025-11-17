@@ -457,7 +457,7 @@ def export_backtest_to_csv(results, output_dir="backtest_exports", prefix="backt
             'Portfolio Value': results['equity'].values
         })
         raw_equity_file = os.path.join(output_dir, f"{prefix}_portfolio_value_{timestamp}.csv")
-        equity_series.to_csv(raw_equity_file, index=False)
+        equity_series.to_csv(raw_equity_file, index=False, date_format="%Y-%m-%d")
         exported_files['portfolio_value'] = raw_equity_file
 
     _create_metadata_file(results, exported_files, output_dir, prefix, timestamp)
