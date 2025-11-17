@@ -87,8 +87,8 @@ def _load_timeseries_csv(path: str) -> pd.DataFrame:
         date_col = df.columns[0]
 
     try:
-        # Attempt datetime conversion
-        df[date_col] = pd.to_datetime(df[date_col], errors='coerce', infer_datetime_format=True)
+        # Attempt datetime conversion (removed deprecated infer_datetime_format)
+        df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
 
         # Check if conversion was successful (most values are datetime, not NaT)
         non_nat_ratio = df[date_col].notna().sum() / len(df)
@@ -97,11 +97,9 @@ def _load_timeseries_csv(path: str) -> pd.DataFrame:
             # Ensure index is datetime64
             if df.index.dtype != 'datetime64[ns]':
                 df.index = pd.to_datetime(df.index, errors='coerce')
-        else:
-            # Conversion failed, return as-is
-            pass
-    except Exception as e:
-        # Conversion failed, return as-is
+        # Note: If conversion fails, we return original DataFrame unchanged
+    except Exception:
+        # Conversion failed, return DataFrame unchanged
         pass
 
     return df
@@ -118,13 +116,27 @@ def _pct_like(colname: str) -> bool:
 
 
 def _ensure_datetime_index(series_or_df) -> pd.Series | pd.DataFrame:
-    """Ensure the index is datetime."""
-    if isinstance(series_or_df, pd.Series):
-        if series_or_df.index.dtype != 'datetime64[ns]':
-            series_or_df.index = pd.to_datetime(series_or_df.index, errors='coerce')
-    else:
-        if series_or_df.index.dtype != 'datetime64[ns]':
-            series_or_df.index = pd.to_datetime(series_or_df.index, errors='coerce')
+    """Ensure the index is datetime, but only if it looks like dates."""
+    index_dtype = series_or_df.index.dtype
+
+    # If already datetime, return unchanged
+    if index_dtype == 'datetime64[ns]':
+        return series_or_df
+
+    # If not datetime, try to convert only if it looks like datetime strings
+    try:
+        # Check if index values look like dates (first few values)
+        sample = str(series_or_df.index[0]).strip()
+        # Simple heuristic: dates usually have dashes or slashes
+        if '-' in sample or '/' in sample or len(sample) >= 8:
+            # Attempt conversion with coerce to avoid NaT explosion
+            new_index = pd.to_datetime(series_or_df.index, errors='coerce')
+            # Only use if conversion was mostly successful
+            if new_index.notna().sum() / len(new_index) > 0.9:
+                series_or_df.index = new_index
+    except Exception:
+        pass
+
     return series_or_df
 
 # ---------- Plotly core ----------
@@ -152,7 +164,6 @@ def _make_fig_base(title: str, y_is_pct: bool) -> go.Figure:
     fig.update_xaxes(
         title=dict(text="Date", font=dict(size=_AXIS_TITLE_SIZE, color=_AXIS_COLOR, family=_FONT_FAMILY)),
         tickfont=dict(size=_TICK_SIZE, color=_AXIS_COLOR, family=_FONT_FAMILY),
-        type="date",  # Explicitly set x-axis as date type
         tickformat="%Y-%m-%d",
         showgrid=True, gridcolor=_GRID_COLOR, linecolor="#cbd5e1", zeroline=False,
         rangeselector=dict(
