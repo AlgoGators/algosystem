@@ -139,6 +139,14 @@ def _ensure_datetime_index(series_or_df) -> pd.Series | pd.DataFrame:
 
     return series_or_df
 
+
+def _convert_index_to_iso_strings(series_or_df) -> pd.Series | pd.DataFrame:
+    """Convert datetime index to ISO format strings for Plotly compatibility."""
+    if series_or_df.index.dtype == 'datetime64[ns]':
+        # Convert DatetimeIndex to ISO format strings (YYYY-MM-DD)
+        series_or_df.index = series_or_df.index.strftime('%Y-%m-%d')
+    return series_or_df
+
 # ---------- Plotly core ----------
 
 def _make_fig_base(title: str, y_is_pct: bool) -> go.Figure:
@@ -164,20 +172,10 @@ def _make_fig_base(title: str, y_is_pct: bool) -> go.Figure:
     fig.update_xaxes(
         title=dict(text="Date", font=dict(size=_AXIS_TITLE_SIZE, color=_AXIS_COLOR, family=_FONT_FAMILY)),
         tickfont=dict(size=_TICK_SIZE, color=_AXIS_COLOR, family=_FONT_FAMILY),
+        type="date",  # Explicitly set as date type for proper formatting
         tickformat="%Y-%m-%d",
         showgrid=True, gridcolor=_GRID_COLOR, linecolor="#cbd5e1", zeroline=False,
-        rangeselector=dict(
-            buttons=[
-                dict(count=3, label="3M", step="month", stepmode="backward"),
-                dict(count=6, label="6M", step="month", stepmode="backward"),
-                dict(count=1, label="1Y", step="year", stepmode="backward"),
-                dict(count=3, label="3Y", step="year", stepmode="backward"),
-                dict(step="all"),
-            ]
-        ),
         rangeslider=dict(visible=False),
-        rangebreaks=[dict(bounds=["sat", "mon"])],
-        ticklabelmode="period",
     )
     fig.update_yaxes(
         title=dict(
@@ -219,6 +217,9 @@ def _save_line_chart(
         if "equity" in title.lower():
             return _save_comparison_chart(series_or_df, title, y_as_percent, outfile)
 
+    # Convert datetime index to ISO strings for Plotly
+    series_or_df = _convert_index_to_iso_strings(series_or_df)
+
     fig = _make_fig_base(title, y_as_percent)
     if isinstance(series_or_df, pd.Series):
         name = series_or_df.name or "Series"
@@ -226,14 +227,14 @@ def _save_line_chart(
         fig.add_trace(go.Scatter(
             x=series_or_df.index, y=series_or_df.values,
             name=name, mode="lines", line=dict(width=3), fill=fill,
-            hovertemplate="%{x|%Y-%m-%d}<br>%{y}<extra>"+name+"</extra>",
+            hovertemplate="%{x}<br>%{y}<extra>"+name+"</extra>",
         ))
     else:
         for col in series_or_df.columns:
             fig.add_trace(go.Scatter(
                 x=series_or_df.index, y=series_or_df[col],
                 name=col, mode="lines", line=dict(width=2.5),
-                hovertemplate="%{x|%Y-%m-%d}<br>%{y}<extra>"+col+"</extra>",
+                hovertemplate="%{x}<br>%{y}<extra>"+col+"</extra>",
             ))
     return _fig_to_png(fig, outfile)
 
@@ -243,6 +244,8 @@ def _save_comparison_chart(
 ) -> str:
     # Ensure datetime index
     df = _ensure_datetime_index(df)
+    # Convert datetime index to ISO strings for Plotly
+    df = _convert_index_to_iso_strings(df)
     fig = _make_fig_base(title, y_as_percent)
     for col in df.columns:
         is_benchmark = "benchmark" in col.lower()
@@ -250,7 +253,7 @@ def _save_comparison_chart(
             x=df.index, y=df[col], name=col, mode="lines",
             line=dict(width=3 if not is_benchmark else 2.5,
                       dash="solid" if not is_benchmark else "dash"),
-            hovertemplate="%{x|%Y-%m-%d}<br>%{y}<extra>"+col+"</extra>",
+            hovertemplate="%{x}<br>%{y}<extra>"+col+"</extra>",
         ))
     # Place legend inside for strategy vs benchmark charts
     fig.update_layout(
@@ -270,6 +273,8 @@ def _save_drawdown_chart(
 ) -> str:
     # Ensure datetime index
     series_or_df = _ensure_datetime_index(series_or_df)
+    # Convert datetime index to ISO strings for Plotly
+    series_or_df = _convert_index_to_iso_strings(series_or_df)
     fig = _make_fig_base(title, y_is_pct=True)
     fig.update_yaxes(title=dict(text="Drawdown (%)",
                                 font=dict(size=_AXIS_TITLE_SIZE, color=_AXIS_COLOR, family=_FONT_FAMILY)),
@@ -281,7 +286,7 @@ def _save_drawdown_chart(
         fig.add_trace(go.Scatter(
             x=series_or_df.index, y=series_or_df.values, name=name,
             mode="lines", line=dict(width=2.5), fill="tozeroy",
-            hovertemplate="%{x|%Y-%m-%d}<br>%{y:.1%}<extra>"+name+"</extra>",
+            hovertemplate="%{x}<br>%{y:.1%}<extra>"+name+"</extra>",
         ))
     else:
         cols = list(series_or_df.columns)
@@ -294,7 +299,7 @@ def _save_drawdown_chart(
                 line=dict(width=3 if not is_benchmark else 2.5,
                           dash="solid" if not is_benchmark else "dash"),
                 fill="tozeroy",
-                hovertemplate="%{x|%Y-%m-%d}<br>%{y:.1%}<extra>"+col+"</extra>",
+                hovertemplate="%{x}<br>%{y:.1%}<extra>"+col+"</extra>",
             ))
     fig.add_hline(y=0, line_width=2, line_color="#111827", opacity=0.9)
 
