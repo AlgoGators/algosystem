@@ -121,6 +121,7 @@ def _make_fig_base(title: str, y_is_pct: bool) -> go.Figure:
     fig.update_xaxes(
         title=dict(text="Date", font=dict(size=_AXIS_TITLE_SIZE, color=_AXIS_COLOR, family=_FONT_FAMILY)),
         tickfont=dict(size=_TICK_SIZE, color=_AXIS_COLOR, family=_FONT_FAMILY),
+        tickformat="%Y-%m-%d",
         showgrid=True, gridcolor=_GRID_COLOR, linecolor="#cbd5e1", zeroline=False,
         rangeselector=dict(
             buttons=[
