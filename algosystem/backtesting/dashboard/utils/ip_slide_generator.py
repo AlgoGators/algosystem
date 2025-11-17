@@ -72,18 +72,38 @@ def _pick_latest(pattern: str) -> Optional[str]:
 
 
 def _load_timeseries_csv(path: str) -> pd.DataFrame:
+    """Load CSV and ensure index is datetime."""
     df = pd.read_csv(path)
-    if 'Date' in df.columns:
-        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-        df = df.set_index('Date').sort_index()
-    else:
-        first_col = df.columns[0]
-        try:
-            df[first_col] = pd.to_datetime(df[first_col], errors='coerce')
-            if df[first_col].notna().any():
-                df = df.set_index(first_col).sort_index()
-        except Exception:
+
+    # Try to find and convert date column
+    date_col = None
+    for col in df.columns:
+        if col.lower() in ['date', 'datetime', 'timestamp', '']:
+            date_col = col
+            break
+
+    # If no explicit date column found, try first column
+    if date_col is None:
+        date_col = df.columns[0]
+
+    try:
+        # Attempt datetime conversion
+        df[date_col] = pd.to_datetime(df[date_col], errors='coerce', infer_datetime_format=True)
+
+        # Check if conversion was successful (most values are datetime, not NaT)
+        non_nat_ratio = df[date_col].notna().sum() / len(df)
+        if non_nat_ratio > 0.9:  # At least 90% successfully converted
+            df = df.set_index(date_col).sort_index()
+            # Ensure index is datetime64
+            if df.index.dtype != 'datetime64[ns]':
+                df.index = pd.to_datetime(df.index, errors='coerce')
+        else:
+            # Conversion failed, return as-is
             pass
+    except Exception as e:
+        # Conversion failed, return as-is
+        pass
+
     return df
 
 
@@ -95,6 +115,17 @@ def _pct_like(colname: str) -> bool:
     return any(k in colname.lower() for k in [
         "return", "drawdown", "relative", "vol", "sharpe", "sortino", "var", "calmar"
     ])
+
+
+def _ensure_datetime_index(series_or_df) -> pd.Series | pd.DataFrame:
+    """Ensure the index is datetime."""
+    if isinstance(series_or_df, pd.Series):
+        if series_or_df.index.dtype != 'datetime64[ns]':
+            series_or_df.index = pd.to_datetime(series_or_df.index, errors='coerce')
+    else:
+        if series_or_df.index.dtype != 'datetime64[ns]':
+            series_or_df.index = pd.to_datetime(series_or_df.index, errors='coerce')
+    return series_or_df
 
 # ---------- Plotly core ----------
 
@@ -121,6 +152,7 @@ def _make_fig_base(title: str, y_is_pct: bool) -> go.Figure:
     fig.update_xaxes(
         title=dict(text="Date", font=dict(size=_AXIS_TITLE_SIZE, color=_AXIS_COLOR, family=_FONT_FAMILY)),
         tickfont=dict(size=_TICK_SIZE, color=_AXIS_COLOR, family=_FONT_FAMILY),
+        type="date",  # Explicitly set x-axis as date type
         tickformat="%Y-%m-%d",
         showgrid=True, gridcolor=_GRID_COLOR, linecolor="#cbd5e1", zeroline=False,
         rangeselector=dict(
@@ -167,6 +199,9 @@ def _save_line_chart(
     y_as_percent: bool = False,
     outfile: str = "chart.png",
 ) -> str:
+    # Ensure datetime index
+    series_or_df = _ensure_datetime_index(series_or_df)
+
     if "drawdown" in title.lower():
         return _save_drawdown_chart(series_or_df, title, outfile)
     if isinstance(series_or_df, pd.DataFrame) and len(series_or_df.columns) > 1:
@@ -195,6 +230,8 @@ def _save_line_chart(
 def _save_comparison_chart(
     df: pd.DataFrame, title: str, y_as_percent: bool = False, outfile: str = "chart.png",
 ) -> str:
+    # Ensure datetime index
+    df = _ensure_datetime_index(df)
     fig = _make_fig_base(title, y_as_percent)
     for col in df.columns:
         is_benchmark = "benchmark" in col.lower()
@@ -220,6 +257,8 @@ def _save_comparison_chart(
 def _save_drawdown_chart(
     series_or_df: pd.Series | pd.DataFrame, title: str, outfile: str = "chart.png",
 ) -> str:
+    # Ensure datetime index
+    series_or_df = _ensure_datetime_index(series_or_df)
     fig = _make_fig_base(title, y_is_pct=True)
     fig.update_yaxes(title=dict(text="Drawdown (%)",
                                 font=dict(size=_AXIS_TITLE_SIZE, color=_AXIS_COLOR, family=_FONT_FAMILY)),
