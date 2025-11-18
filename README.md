@@ -62,11 +62,11 @@ engine = quick_backtest(data)
 
 ## 📖 Documentation
 
-- [Installation Guide](INSTALLATION.md)
-- [CLI Reference](CLI_GUIDE.md)
-- [Python API](API_GUIDE.md)
-- [Dashboard Customization](DASHBOARD_GUIDE.md)
-- [Benchmark Integration](BENCHMARK_GUIDE.md)
+- [Installation Guide](docs/INSTALLATION.md)
+- [CLI Reference](docs/CLI_GUIDE.md)
+- [Python API](docs/API_GUIDE.md)
+- [Dashboard Customization](docs/DASHBOARD_GUIDE.md)
+- [Benchmark Integration](docs/BENCHMARK_GUIDE.md)
 
 ## 🔧 Example Usage
 
