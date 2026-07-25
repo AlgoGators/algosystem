@@ -8,6 +8,9 @@ venv
 dist
 poetry.lock
 
+# docs
+docs/_build/
+
 # testing
 .coverage
 coverage.xml
