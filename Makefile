@@ -4,28 +4,21 @@
 #     make install        # dependencies
 #     make test           # run the suite
 #     make lint           # style + static checks
-SHELL := /bin/bash
 
 POETRY  ?= poetry
+PYTHON  ?= python
 PACKAGE ?= algosystem
 
 .DEFAULT_GOAL := help
 .PHONY: help install test test-cov lint format typecheck docs clean
 
 help: ## Show available targets
-	@echo "algosystem -- backtesting and dashboard library"
-	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
+	@$(PYTHON) -c "from pathlib import Path; import re; rows=[]; pattern=re.compile(r'^([A-Za-z_-]+):.*?## (.*)$$'); [rows.append(m.groups()) for line in Path('Makefile').read_text().splitlines() for m in [pattern.match(line)] if m]; print('algosystem -- backtesting and dashboard library'); print(); [print('  {0:<12} {1}'.format(name, desc)) for name, desc in sorted(rows)]"
 
 install: ## Install dependencies (main entrypoint)
-	@command -v $(POETRY) >/dev/null 2>&1 || { \
-		echo "poetry not found. Install it: https://python-poetry.org/docs/#installation"; \
-		exit 1; \
-	}
+	@$(POETRY) --version
 	@$(POETRY) install
-	@echo ""
-	@echo "Ready. Run 'make test' or 'make lint'."
+	@$(PYTHON) -c "print(); print('Ready. Run make test or make lint.')"
 
 test: ## Run the test suite
 	@$(POETRY) run pytest -q
@@ -46,15 +39,10 @@ typecheck: ## Run mypy
 	@$(POETRY) run mypy $(PACKAGE)
 
 docs: ## Build the Sphinx docs site
-	@if [ ! -f docs/conf.py ]; then \
-		echo "docs/conf.py not present on this branch yet -- see the docs PR."; \
-		exit 1; \
-	fi
+	@$(PYTHON) -c "from pathlib import Path; import sys; sys.exit(0 if Path('docs/conf.py').is_file() else 'docs/conf.py not present on this branch yet -- see the docs PR.')"
 	@$(POETRY) install --only docs --no-root
 	@$(POETRY) run sphinx-build -b html docs docs/_build/html
-	@echo "Docs built -> docs/_build/html/index.html"
+	@$(PYTHON) -c "print('Docs built -> docs/_build/html/index.html')"
 
 clean: ## Remove caches and build artifacts
-	@find . -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
-	@rm -rf .pytest_cache .mypy_cache .ruff_cache dist docs/_build
-	@echo "Cleaned caches and build artifacts."
+	@$(PYTHON) -c "import shutil; from pathlib import Path; [shutil.rmtree(p, ignore_errors=True) for p in Path('.').rglob('__pycache__')]; [shutil.rmtree(Path(p), ignore_errors=True) for p in ('.pytest_cache', '.mypy_cache', '.ruff_cache', 'dist', 'docs/_build')]; print('Cleaned caches and build artifacts.')"
