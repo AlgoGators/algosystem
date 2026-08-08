@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Python deps (Poetry: pyproject.toml + poetry.lock)
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels: [dependencies, python]
+
+  # Keep the Actions in the existing test workflow current
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies, ci]
