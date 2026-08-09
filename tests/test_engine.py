@@ -111,28 +111,20 @@ class TestEngine:
         assert "annualized_return" in results["metrics"]
         assert "annualized_volatility" in results["metrics"]
 
-    def test_backtest_with_benchmark(
-        self, sample_price_series, sample_benchmark_series
-    ):
+    def test_backtest_with_benchmark(self, sample_price_series, sample_benchmark_series):
         """Test backtest with benchmark comparison."""
         engine = Engine(sample_price_series, benchmark=sample_benchmark_series)
         results = engine.run()
 
-        # Check that benchmark-specific metrics are calculated
-        metrics = results["metrics"]
-        # Note: Some metrics might not be present if calculation fails
-        # We just check that no errors occurred during execution
         assert results is not None
         assert "metrics" in results
+        assert isinstance(results["metrics"], dict)
 
         # Check that plots include benchmark data
         assert "plots" in results
         plots = results["plots"]
-        # Some benchmark plots might be available
-        possible_benchmark_keys = ["benchmark_equity_curve", "relative_performance"]
-        # At least one benchmark-related plot should be available
-        has_benchmark_data = any(key in plots for key in possible_benchmark_keys)
         # Note: We don't assert this as it depends on successful metric calculation
+        assert isinstance(plots, dict)
 
     def test_get_results_before_run(self, sample_price_series):
         """Test getting results before running backtest."""
@@ -200,9 +192,7 @@ class TestEngine:
         assert "annualized_volatility" in results["metrics"]  # Fixed: use correct key
 
         # Verify high volatility is detected
-        assert (
-            results["metrics"]["annualized_volatility"] > 0.1
-        )  # Should be significantly volatile
+        assert results["metrics"]["annualized_volatility"] > 0.1  # Should be significantly volatile
 
     def test_negative_returns_series(self, negative_returns_series):
         """Test engine with series that has negative returns."""
@@ -248,33 +238,23 @@ class TestEngine:
 
     def test_invalid_price_column(self, sample_dataframe):
         """Test engine with invalid price column name."""
-        with pytest.raises(KeyError):
+        with pytest.raises(ValueError):
             Engine(sample_dataframe, price_column="NonExistent")
 
     def test_invalid_date_range(self, sample_price_series):
         """Test engine with invalid date range."""
-        # End date before start date should result in empty data
-        engine = Engine(
-            sample_price_series, start_date="2020-12-31", end_date="2020-01-01"
-        )
         with pytest.raises(ValueError):
-            # Should raise error due to empty data after filtering
-            pass
+            Engine(sample_price_series, start_date="2020-12-31", end_date="2020-01-01")
 
     def test_date_range_outside_data(self, sample_price_series):
         """Test engine with date range outside available data."""
-        # Dates far in the future
-        engine = Engine(
-            sample_price_series, start_date="2025-01-01", end_date="2025-12-31"
-        )
         with pytest.raises(ValueError):
-            # Should raise error due to no data in range
-            pass
+            Engine(sample_price_series, start_date="2025-01-01", end_date="2025-12-31")
 
     def test_print_metrics(self, sample_price_series, capsys):
         """Test metrics printing functionality."""
         engine = Engine(sample_price_series)
-        results = engine.run()
+        engine.run()
 
         # Should not raise error
         engine.print_metrics()
@@ -303,19 +283,11 @@ class TestEngine:
     def test_get_plots_after_run(self, sample_price_series):
         """Test getting plots after running backtest."""
         engine = Engine(sample_price_series)
-        results = engine.run()
+        engine.run()
         plots = engine.get_plots()
 
-        # Should return plots dictionary
-        assert isinstance(plots, dict)
-        # Should have some plot data
-        assert len(plots) > 0
-
-        # Check for common plot types
-        expected_plots = ["equity_curve", "drawdown_series", "daily_returns"]
-        for plot_type in expected_plots:
-            if plot_type in plots:
-                assert isinstance(plots[plot_type], pd.Series)
+        # Time-series analytics moved behind the calculator port; legacy plots are empty.
+        assert plots == {}
 
     def test_engine_start_end_dates_properties(self, sample_price_series):
         """Test that start_date and end_date properties are correctly set."""
@@ -375,9 +347,7 @@ class TestEngineEdgeCases:
 
     def test_two_data_points(self):
         """Test engine with exactly two data points."""
-        two_points = pd.Series(
-            [100, 101], index=pd.date_range("2020-01-01", periods=2, freq="D")
-        )
+        two_points = pd.Series([100, 101], index=pd.date_range("2020-01-01", periods=2, freq="D"))
 
         engine = Engine(two_points)
         results = engine.run()
@@ -405,13 +375,8 @@ class TestEngineEdgeCases:
         dates = pd.to_datetime(["2020-01-03", "2020-01-01", "2020-01-02"])
         data = pd.Series([102, 100, 101], index=dates)
 
-        # Should handle unsorted dates
-        engine = Engine(data)
-        results = engine.run()
-
-        assert results is not None
-        # The data should be processed in the order provided
-        assert len(results["equity"]) == 3
+        with pytest.raises(ValueError):
+            Engine(data)
 
     def test_duplicate_dates(self):
         """Test engine with duplicate dates in index."""
@@ -526,12 +491,8 @@ class TestEngineEdgeCases:
     def test_benchmark_no_overlap(self, sample_price_series):
         """Test with benchmark that has no date overlap."""
         # Create benchmark with completely different dates
-        benchmark_dates = pd.date_range(
-            "2021-01-01", periods=len(sample_price_series), freq="D"
-        )
-        no_overlap_benchmark = pd.Series(
-            sample_price_series.values, index=benchmark_dates
-        )
+        benchmark_dates = pd.date_range("2021-01-01", periods=len(sample_price_series), freq="D")
+        no_overlap_benchmark = pd.Series(sample_price_series.values, index=benchmark_dates)
 
         engine = Engine(sample_price_series, benchmark=no_overlap_benchmark)
         results = engine.run()

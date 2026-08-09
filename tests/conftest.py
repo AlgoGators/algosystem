@@ -36,9 +36,7 @@ def sample_dataframe():
     data = pd.DataFrame(
         {
             "Strategy": 100
-            * (
-                1 + pd.Series(np.random.normal(0.001, 0.02, 100), index=dates)
-            ).cumprod(),
+            * (1 + pd.Series(np.random.normal(0.001, 0.02, 100), index=dates)).cumprod(),
             "Other_Column": np.random.normal(0, 1, 100),
         },
         index=dates,

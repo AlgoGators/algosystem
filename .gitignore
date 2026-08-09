@@ -5,7 +5,7 @@ venv
 .env
 
 # poetry
-dist
+dist/
 poetry.lock
 
 # docs
@@ -14,7 +14,7 @@ docs/_build/
 # testing
 .coverage
 coverage.xml
-htmlcov
+htmlcov/
 test_dashboard/
 temp.py
 
@@ -36,3 +36,5 @@ nd.json
 debug_config.json
 benchmark.csv
 strategy.csv
+# codex phase reports
+.codex/reports/
