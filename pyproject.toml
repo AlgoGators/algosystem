@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "algosystem"
-version = "0.2.0"
+version = "0.1.9"
 description = "A batteries-included pythonic library for AlgoGators members"
 authors = ["AlgoGators Team <team@algogators.org>"]
 homepage = "https://github.com/algogators/algosystem"
@@ -10,7 +10,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Financial and Insurance Industry",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -21,7 +20,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<4.0"
+python = ">=3.10,<4.0"
 pandas = ">=1.3.0"
 numpy = ">=1.20.0"
 matplotlib = ">=3.4.0"
@@ -29,27 +28,25 @@ seaborn = ">=0.11.0"
 sqlalchemy = ">=1.4.0"
 click = ">=8.0.0"
 scipy = ">=1.7.0"
-pytz = ">=2021.1"
-requests = ">=2.25.0"
-pyyaml = ">=5.4.0"
+requests = ">=2.33.0"
 quantstats = "^0.0.64"
-pyarrow = "^19.0.1"
+pyarrow = ">=23.0.1"
 rich = "^14.0.0"
-pytest = "^8.3.5"
-flake8 = "^7.2.0"
 openpyxl = "^3.1.5"
 yfinance = "^0.2.61"
-python-dotenv = "^1.1.0"
-ipython = "8.12.0"
+python-dotenv = ">=1.2.2"
 psycopg2 = "^2.9.10"
+# Declared for security floors only; these are transitive at runtime.
+pillow = ">=12.3.0"
+urllib3 = ">=2.7.0"
 
 [tool.poetry.scripts]
 algosystem = "algosystem.interfaces.cli.main:cli"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.3.5"
+pytest = ">=9.0.3"
 pylint = "^3.1.0"
-black = "^24.4.0"
+black = ">=26.3.1"
 isort = "^5.13.2"
 mypy = "^1.8.0"
 pytest-cov = "^5.0.0"

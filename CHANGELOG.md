@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 - 2026-08-09
+## Unreleased
 
 - Removed the custom dashboard, Flask editor, component configuration system, and
   PowerPoint-oriented reporting surface. quantstats tearsheets are now the reporting path.

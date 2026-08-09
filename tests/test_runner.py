@@ -78,22 +78,14 @@ def run_linting():
     print("Running black (code formatting)...")
     black_result = subprocess.run(["black", "--check", "algosystem", "tests"])
 
-    print("\nRunning flake8 (linting)...")
-    flake8_result = subprocess.run(
-        [
-            "flake8",
-            "algosystem",
-            "tests",
-            "--max-line-length=88",
-            "--extend-ignore=E203,W503",
-        ]
-    )
+    print("\nRunning ruff (linting)...")
+    ruff_result = subprocess.run(["ruff", "check", "algosystem", "tests"])
 
     print("\nRunning mypy (type checking)...")
     mypy_result = subprocess.run(["mypy", "algosystem", "--ignore-missing-imports"])
 
     # Return overall result
-    return max(black_result.returncode, flake8_result.returncode, mypy_result.returncode)
+    return max(black_result.returncode, ruff_result.returncode, mypy_result.returncode)
 
 
 def run_performance_tests():

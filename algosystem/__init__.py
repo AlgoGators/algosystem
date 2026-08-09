@@ -8,7 +8,7 @@ from algosystem.shared.errors import AlgoSystemError, DomainError, MarketDataErr
 from algosystem.shared.metric_key import MetricKey
 from algosystem.shared.values import DateRange, Money, Percent, Ratio, RunId
 
-__version__ = "0.2.0"
+__version__ = "0.1.9"
 
 _LAZY_EXPORTS = {
     "AlgoSystem": ("algosystem.interfaces.api", "AlgoSystem"),

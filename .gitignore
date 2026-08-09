@@ -6,7 +6,6 @@ venv
 
 # poetry
 dist/
-poetry.lock
 
 # docs
 docs/_build/
@@ -38,3 +37,5 @@ benchmark.csv
 strategy.csv
 # codex phase reports
 .codex/reports/
+
+poetry.lock
