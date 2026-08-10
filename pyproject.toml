@@ -30,6 +30,10 @@ click = ">=8.0.0"
 scipy = ">=1.7.0"
 requests = ">=2.33.0"
 quantstats = "^0.0.64"
+# quantstats <0.0.66 imports IPython at module scope without declaring it, so
+# it must be declared here. Capped below 9 because IPython 9.x requires Python
+# >=3.11 and this package still supports 3.10.
+ipython = ">=8.18.1,<9"
 pyarrow = ">=23.0.1"
 rich = "^14.0.0"
 openpyxl = "^3.1.5"
