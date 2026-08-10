@@ -24,8 +24,14 @@ class TestPackageExports:
         assert "AlgoSystem" in algosystem.__all__
         assert "run_backtest" in algosystem.__all__
         assert "quick_backtest" in algosystem.__all__
+        assert "ValidationMetricKey" in algosystem.__all__
+        assert "OverfitResults" in algosystem.__all__
+        assert "ParameterGrid" in algosystem.__all__
+        assert "StrategySpec" in algosystem.__all__
         assert hasattr(AlgoSystem, "backtest")
         assert hasattr(AlgoSystem, "tearsheet")
+        assert hasattr(AlgoSystem, "detect_overfitting")
+        assert hasattr(AlgoSystem, "validation_report")
         assert hasattr(AlgoSystem, "save")
         assert hasattr(AlgoSystem, "load")
         assert hasattr(AlgoSystem, "compare")
@@ -92,6 +98,25 @@ class TestAlgoSystemAPI:
             )
 
         assert isinstance(result, BacktestResult)
+
+    def test_validation_facade_methods(self, sample_price_series, tmp_path):
+        from algosystem.backtesting.domain.equity_curve import EquityCurve
+
+        curve = EquityCurve.from_series(sample_price_series)
+        algo = AlgoSystem(calculator=FakeMetricsCalculator())
+
+        report = algo.detect_overfitting(
+            strategy="momentum",
+            returns=curve,
+            param_grid={"lookback": [3], "threshold": [0.0]},
+            n_reps=2,
+            n_workers=1,
+            seed=7,
+        )
+        output = algo.validation_report(report, output=tmp_path / "overfit.html")
+
+        assert report.n_reps == 2
+        assert output.exists()
 
 
 class TestAlgoSystemResults:

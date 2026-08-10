@@ -98,6 +98,50 @@ class AlgoSystem:
         )
         return response.output
 
+    def detect_overfitting(
+        self,
+        *,
+        strategy: object = "momentum",
+        returns: object,
+        param_grid: Optional[Mapping[str, Sequence[object]]] = None,
+        n_reps: int = 1000,
+        seed: Optional[int] = None,
+        shuffle_method: str = "complete",
+        n_workers: Optional[int] = None,
+    ) -> object:
+        """Run validation over a re-runnable strategy and return overfit results."""
+        from algosystem.validation.facade import detect_overfitting
+
+        return detect_overfitting(
+            strategy=strategy,
+            returns=returns,
+            param_grid=param_grid,
+            n_reps=n_reps,
+            seed=seed,
+            shuffle_method=shuffle_method,
+            n_workers=n_workers,
+        )
+
+    def validation_report(
+        self,
+        report: object,
+        output: object = "overfit.html",
+        *,
+        title: str = "Overfitting Detection Report",
+        open_browser: bool = False,
+    ) -> Path:
+        """Render a validation HTML report."""
+        from algosystem.validation.application.render_report import RenderValidationReport
+        from algosystem.validation.infrastructure.html_report import HtmlReportRenderer
+
+        results = getattr(report, "overfit_results", report)
+        return RenderValidationReport(HtmlReportRenderer()).execute(
+            results,
+            Path(output),
+            title=title,
+            open_browser=open_browser,
+        )
+
     def save(
         self,
         result: BacktestResult,
@@ -295,6 +339,11 @@ def run_backtest(data: object, benchmark: object = None, **kwargs: object) -> Ba
     return AlgoSystem().backtest(data, benchmark=benchmark, **kwargs)
 
 
+def detect_overfitting(**kwargs: object) -> object:
+    """Run validation with default adapters and return overfit results."""
+    return AlgoSystem().detect_overfitting(**kwargs)
+
+
 def quick_backtest(data: object, benchmark: object = None, **kwargs: object) -> BacktestResult:
     """Deprecated convenience wrapper that runs and prints a backtest."""
     warnings.warn(
@@ -428,4 +477,4 @@ def _format_metric(metric_key: MetricKey, value: float) -> str:
     return f"{value:.4f}"
 
 
-__all__ = ["AlgoSystem", "quick_backtest", "run_backtest"]
+__all__ = ["AlgoSystem", "detect_overfitting", "quick_backtest", "run_backtest"]

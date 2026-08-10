@@ -1,7 +1,8 @@
 # AlgoSystem
 
 AlgoSystem is a Python library for backtesting a price series, storing runs in
-Postgres, and producing quantstats tearsheet reports.
+Postgres, producing quantstats tearsheet reports, and validating parameter
+searches for overfitting.
 
 ```{toctree}
 :maxdepth: 2
@@ -11,4 +12,5 @@ installation
 CLI_GUIDE
 API_GUIDE
 BENCHMARK_GUIDE
+VALIDATION_GUIDE
 ```

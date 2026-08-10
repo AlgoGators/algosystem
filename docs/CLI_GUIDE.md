@@ -1,7 +1,7 @@
 # CLI Guide
 
-The CLI is a thin adapter over the same backtesting, tearsheet, benchmark, and
-repository use cases exposed by the Python API.
+The CLI is a thin adapter over the same backtesting, tearsheet, validation,
+benchmark, and repository use cases exposed by the Python API.
 
 ## Backtest
 
@@ -16,6 +16,16 @@ algosystem backtest strategy.csv --benchmark sp500 --start 2022-01-01 --end 2023
 algosystem tearsheet strategy.csv --price-column Strategy --output tearsheet.html
 algosystem tearsheet strategy.csv --mode basic --open
 ```
+
+## Validation
+
+```bash
+algosystem validate strategy.csv --strategy momentum --reps 200 --seed 7 --output overfit.html
+algosystem validate-strategies
+```
+
+Validation reports are local HTML files, but the charts load Plotly from a CDN
+when opened in a browser.
 
 ## Benchmarks
 

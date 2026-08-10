@@ -10,6 +10,8 @@ def test_cli_help_lists_phase_5_commands():
     assert "AlgoSystem" in result.output
     assert "backtest" in result.output
     assert "tearsheet" in result.output
+    assert "validate" in result.output
+    assert "validate-strategies" in result.output
     assert "benchmarks" in result.output
     assert "db" in result.output
 
@@ -22,10 +24,19 @@ def test_cli_version():
 
 
 def test_top_level_subcommand_help():
-    for command in ("backtest", "tearsheet", "benchmarks", "db"):
+    for command in ("backtest", "tearsheet", "validate", "validate-strategies", "benchmarks", "db"):
         result = CliRunner().invoke(cli, [command, "--help"])
 
         assert result.exit_code == 0
+
+
+def test_validate_strategies_lists_shipped_archetypes():
+    result = CliRunner().invoke(cli, ["validate-strategies"])
+
+    assert result.exit_code == 0
+    assert "momentum" in result.output
+    assert "mean_reversion" in result.output
+    assert "volatility" in result.output
 
 
 def test_db_subcommand_help():

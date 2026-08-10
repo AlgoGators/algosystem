@@ -11,6 +11,10 @@ class DomainError(AlgoSystemError, ValueError):
     """Raised when a domain invariant is violated."""
 
 
+class ValidationError(DomainError):
+    """Raised when validation-domain input or state is invalid."""
+
+
 class InvalidPriceSeriesError(DomainError):
     """Raised when a price series is empty, invalid, or not usable."""
 

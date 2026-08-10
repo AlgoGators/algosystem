@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import webbrowser
 from pathlib import Path
 from typing import Optional, Sequence
@@ -9,6 +10,7 @@ from typing import Optional, Sequence
 import click
 from dotenv import load_dotenv
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 
 from algosystem import __version__
@@ -107,6 +109,92 @@ def tearsheet(
             webbrowser.open(Path(rendered).resolve().as_uri())
     except (AlgoSystemError, ValueError) as exc:
         raise click.ClickException(str(exc)) from exc
+
+
+@cli.command()
+@click.argument("input_file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option(
+    "--strategy",
+    default="momentum",
+    show_default=True,
+    help="Shipped name or module:function path.",
+)
+@click.option(
+    "--param",
+    "params",
+    multiple=True,
+    help="Parameter override as KEY=V1,V2,V3. May be repeated.",
+)
+@click.option("--reps", type=int, default=1000, show_default=True, help="Permutation replications.")
+@click.option(
+    "--shuffle",
+    type=click.Choice(["complete", "cyclic", "block"]),
+    default="complete",
+    show_default=True,
+)
+@click.option("--seed", type=int, help="Random seed.")
+@click.option("--output", type=click.Path(dir_okay=False, path_type=Path), help="HTML report path.")
+@click.option("--open", "open_browser", is_flag=True, default=False, help="Open the HTML report.")
+@click.option("--start", help="Start date, e.g. 2022-01-01.")
+@click.option("--end", help="End date, e.g. 2023-01-01.")
+@click.option("--price-column", help="Price/equity column for multi-column CSV files.")
+def validate(
+    input_file: Path,
+    strategy: str,
+    params: Sequence[str],
+    reps: int,
+    shuffle: str,
+    seed: Optional[int],
+    output: Optional[Path],
+    open_browser: bool,
+    start: Optional[str],
+    end: Optional[str],
+    price_column: Optional[str],
+) -> None:
+    """Run overfitting validation from a CSV price/equity series."""
+    try:
+        prices = load_prices(input_file)
+        series = _select_price_series(prices, price_column=price_column, start=start, end=end)
+        from algosystem.backtesting.domain.equity_curve import EquityCurve
+
+        equity_curve = EquityCurve.from_series(series)
+        param_grid = _parse_param_options(params)
+        algo = AlgoSystem()
+        with console.status(f"Running {reps} validation permutations for {strategy}..."):
+            results = algo.detect_overfitting(
+                strategy=strategy,
+                returns=equity_curve,
+                param_grid=param_grid or None,
+                n_reps=reps,
+                seed=seed,
+                shuffle_method=shuffle,
+                n_workers=1,
+            )
+        _print_validation_summary(results)
+
+        report_path = output or (Path("overfit.html") if open_browser else None)
+        if report_path is not None:
+            rendered = algo.validation_report(
+                results,
+                output=report_path,
+                open_browser=open_browser,
+            )
+            console.print(f"Rendered validation report: {rendered}")
+    except (AlgoSystemError, ValueError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+
+@cli.command("validate-strategies")
+def validate_strategies() -> None:
+    """List shipped validation strategy archetypes and default grids."""
+    from algosystem.validation.infrastructure.strategies import STRATEGY_REGISTRY
+
+    table = Table(title="Validation Strategy Archetypes")
+    table.add_column("Name", style="green")
+    table.add_column("Parameter Grid", style="cyan")
+    for name, spec in sorted(STRATEGY_REGISTRY.items()):
+        table.add_row(name, _format_param_grid(spec.parameter_grid.to_dict()))
+    console.print(table)
 
 
 @cli.command()
@@ -258,6 +346,67 @@ def _repository() -> object:
 
 def _format_percent(value: float) -> str:
     return f"{value * 100:.2f}%"
+
+
+def _select_price_series(
+    prices,
+    *,
+    price_column: Optional[str],
+    start: Optional[str],
+    end: Optional[str],
+):
+    frame = prices
+    if start is not None or end is not None:
+        frame = frame.loc[start:end]
+    if frame.empty:
+        raise ValueError("selected validation date range is empty")
+    if price_column is not None:
+        if price_column not in frame.columns:
+            raise ValueError(f"price column not found: {price_column}")
+        return frame[price_column]
+
+    numeric = frame.select_dtypes(include="number")
+    if numeric.shape[1] != 1:
+        raise ValueError("use --price-column when the CSV has multiple numeric columns")
+    return numeric.iloc[:, 0]
+
+
+def _parse_param_options(params: Sequence[str]) -> dict[str, list[object]]:
+    parsed: dict[str, list[object]] = {}
+    for item in params:
+        key, separator, raw_values = item.partition("=")
+        if not separator or not key.strip():
+            raise ValueError(f"invalid --param value: {item}")
+        values = [_parse_param_value(value.strip()) for value in raw_values.split(",")]
+        if not values or any(value == "" for value in values):
+            raise ValueError(f"invalid --param value: {item}")
+        parsed[key.strip()] = values
+    return parsed
+
+
+def _parse_param_value(value: str) -> object:
+    try:
+        return ast.literal_eval(value)
+    except (SyntaxError, ValueError):
+        return value
+
+
+def _format_param_grid(grid: dict[str, list[object]]) -> str:
+    return "; ".join(f"{name}={values}" for name, values in grid.items())
+
+
+def _print_validation_summary(results: object) -> None:
+    table = Table(title="Validation Results")
+    table.add_column("Metric", style="cyan")
+    table.add_column("Value", style="green", justify="right")
+    table.add_row("Parameter combinations", str(results.n_params))
+    table.add_row("Permutation replications", str(results.n_reps))
+    table.add_row("Best Sharpe", f"{results.best_sharpe:.6f}")
+    table.add_row("Unbiased p-value", f"{results.unbiased_pvalue:.12f}")
+    table.add_row("Probability overfit", f"{results.prob_overfit:.12f}")
+    table.add_row("Deflated Sharpe", f"{results.deflated_sharpe:.6f}")
+    console.print(table)
+    console.print(Panel("\n".join(results.summary()), title="Permutation Report", expand=False))
 
 
 __all__ = ["cli"]

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added the validation context for overfitting detection, porting John Riley's
+  <john.p.riley1287@gmail.com> statistical core, shipped strategy archetypes,
+  chart/report adapters, CLI commands, and facade methods into the
+  domain-driven layout.
 - Removed the custom dashboard, Flask editor, component configuration system, and
   PowerPoint-oriented reporting surface. quantstats tearsheets are now the reporting path.
 - Split benchmark market data into domain catalog, provider/cache ports, yfinance

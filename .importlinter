@@ -18,12 +18,30 @@ layers =
     algosystem.marketdata.application
     algosystem.marketdata.domain
 
+[importlinter:contract:validation_layers]
+name = Interfaces, validation application, and validation domain layers
+type = layers
+layers =
+    algosystem.interfaces
+    algosystem.validation.application
+    algosystem.validation.domain
+
+[importlinter:contract:validation_infrastructure_is_adapter_only]
+name = Validation infrastructure depends on validation domain only
+type = forbidden
+source_modules =
+    algosystem.validation.infrastructure
+forbidden_modules =
+    algosystem.validation.application
+    algosystem.interfaces
+
 [importlinter:contract:domain_vendor_forbidden]
 name = Domains do not import vendor libraries
 type = forbidden
 source_modules =
     algosystem.backtesting.domain
     algosystem.marketdata.domain
+    algosystem.validation.domain
 forbidden_modules =
     quantstats
     yfinance
@@ -34,6 +52,19 @@ forbidden_modules =
     click
     rich
 
+[importlinter:contract:validation_domain_forbidden]
+name = Validation domain stays array-based and side-effect free
+type = forbidden
+source_modules =
+    algosystem.validation.domain
+forbidden_modules =
+    pandas
+    matplotlib
+    multiprocessing
+    quantstats
+    webbrowser
+    os
+
 [importlinter:contract:core_no_infrastructure]
 name = Domain and application layers do not import infrastructure or interfaces
 type = forbidden
@@ -42,17 +73,21 @@ source_modules =
     algosystem.backtesting.domain
     algosystem.marketdata.application
     algosystem.marketdata.domain
+    algosystem.validation.application
+    algosystem.validation.domain
 forbidden_modules =
     algosystem.backtesting.infrastructure
     algosystem.marketdata.infrastructure
+    algosystem.validation.infrastructure
     algosystem.interfaces
 
 [importlinter:contract:bounded_context_independence]
-name = Backtesting and marketdata internals stay independent
+name = Bounded context internals stay independent
 type = independence
 modules =
     algosystem.backtesting
     algosystem.marketdata
+    algosystem.validation
 ignore_imports =
     algosystem.marketdata.application.fetch_benchmark -> algosystem.backtesting
 unmatched_ignore_imports_alerting = none

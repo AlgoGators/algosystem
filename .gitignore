@@ -39,3 +39,6 @@ strategy.csv
 .codex/reports/
 
 poetry.lock
+
+# riley-opt staging area (not part of the package)
+.codex/incoming/

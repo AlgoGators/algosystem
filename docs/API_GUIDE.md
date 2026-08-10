@@ -12,8 +12,14 @@ from algosystem import (
     MarketDataError,
     MetricKey,
     Money,
+    OverfitResults,
+    ParameterGrid,
     PerformanceMetrics,
     RepositoryError,
+    StrategySpec,
+    ValidationError,
+    ValidationMetricKey,
+    detect_overfitting,
     run_backtest,
 )
 ```
@@ -24,7 +30,7 @@ from algosystem import (
 import pandas as pd
 from algosystem import AlgoSystem
 
-prices = pd.read_csv("strategy.csv", parse_dates=["Date"]).set_index("Date")
+prices = pd.read_csv("strategy.csv", index_col=0, parse_dates=True)
 algo = AlgoSystem()
 result = algo.backtest(prices, price_column="Strategy", initial_capital=100000)
 algo.print_summary(result, detailed=True)
@@ -42,6 +48,24 @@ result = algo.backtest(prices, benchmark=benchmark, price_column="Strategy")
 ```python
 output = algo.tearsheet(result, output="tearsheet.html", mode="html")
 ```
+
+## Validation
+
+```python
+from algosystem.backtesting.domain.equity_curve import EquityCurve
+
+curve = EquityCurve.from_series(prices["Strategy"])
+report = algo.detect_overfitting(
+    strategy="momentum",
+    returns=curve,
+    param_grid={"lookback": [10, 20, 50]},
+    n_reps=200,
+    seed=7,
+)
+algo.validation_report(report, output="overfit.html")
+```
+
+The validation HTML report loads Plotly from a CDN when opened.
 
 ## Persistence
 

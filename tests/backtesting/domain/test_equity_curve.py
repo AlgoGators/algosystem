@@ -27,7 +27,7 @@ def test_package_import_does_not_load_heavy_adapters():
 import sys
 import algosystem
 
-forbidden = {"quantstats", "yfinance", "sqlalchemy", "matplotlib"}
+forbidden = {"quantstats", "yfinance", "sqlalchemy", "matplotlib", "multiprocessing"}
 loaded = sorted(forbidden.intersection(sys.modules))
 if loaded:
     raise SystemExit(f"heavy adapters imported: {loaded}")
