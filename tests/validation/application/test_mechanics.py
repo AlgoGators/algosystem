@@ -139,14 +139,14 @@ class TestComparisonDirection:
 
 class TestReproducibility:
     def test_same_seed_same_results(self, noise_returns, small_grid):
-        kwargs = dict(
-            backtest_fn=backtest_noise,
-            returns=noise_returns,
-            param_grid=small_grid,
-            n_reps=50,
-            n_workers=1,
-            seed=42,
-        )
+        kwargs = {
+            "backtest_fn": backtest_noise,
+            "returns": noise_returns,
+            "param_grid": small_grid,
+            "n_reps": 50,
+            "n_workers": 1,
+            "seed": 42,
+        }
         res1 = OverfitDetector(**kwargs).run()
         res2 = OverfitDetector(**kwargs).run()
 
@@ -158,13 +158,13 @@ class TestReproducibility:
 
 class TestMultiprocessing:
     def test_single_vs_multi(self, noise_returns, small_grid):
-        kwargs_base = dict(
-            backtest_fn=backtest_noise,
-            returns=noise_returns,
-            param_grid=small_grid,
-            n_reps=50,
-            seed=42,
-        )
+        kwargs_base = {
+            "backtest_fn": backtest_noise,
+            "returns": noise_returns,
+            "param_grid": small_grid,
+            "n_reps": 50,
+            "seed": 42,
+        }
         res_single = OverfitDetector(**kwargs_base, n_workers=1).run()
         res_multi = OverfitDetector(**kwargs_base, n_workers=2).run()
 

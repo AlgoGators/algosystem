@@ -96,3 +96,13 @@ exclude = ["build/", "dist/", ".venv/", "__pycache__/"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "C", "B", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# The report is one embedded HTML/CSS/JS template. Wrapping markup at 100
+# columns would obscure it without making it more readable.
+"algosystem/validation/infrastructure/html_report.py" = ["E501"]
+# Numeric kernels: the branching is the strategy logic, and splitting these
+# into helpers would spread a single calculation across several functions.
+"algosystem/validation/infrastructure/strategies/_cost_wrapper.py" = ["C901"]
+"algosystem/validation/infrastructure/strategies/mean_reversion.py" = ["C901"]
+"tests/validation/application/test_bruteforce.py" = ["C901"]
