@@ -42,3 +42,7 @@ poetry.lock
 
 # riley-opt staging area (not part of the package)
 .codex/incoming/
+
+# Artifacts produced by running the example notebooks
+examples/*.html
+examples/.ipynb_checkpoints/
