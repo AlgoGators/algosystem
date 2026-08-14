@@ -35,7 +35,7 @@ quantstats = "^0.0.64"
 # >=3.11 and this package still supports 3.10.
 ipython = ">=8.18.1,<9"
 pyarrow = ">=23.0.1"
-rich = "^14.0.0"
+rich = ">=14,<16"
 openpyxl = "^3.1.5"
 yfinance = "^0.2.61"
 python-dotenv = ">=1.2.2"
