@@ -1,561 +1,339 @@
-"""
-Complete tests for algosystem.api module.
-"""
+import sys
+import types
+from pathlib import Path
+from unittest.mock import Mock, patch
 
-import json
-import os
-import tempfile
-from unittest.mock import Mock, patch, MagicMock
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
 
-from algosystem.api import AlgoSystem, quick_backtest
-from algosystem.backtesting.engine import Engine
+import algosystem
+from algosystem import AlgoSystem, quick_backtest, run_backtest
+from algosystem.backtesting.domain.backtest import BacktestResult
+from algosystem.backtesting.infrastructure.fake_calculator import FakeMetricsCalculator
+from algosystem.backtesting.infrastructure.persistence import InMemoryBacktestRunRepository
+from algosystem.shared.errors import ConfigurationError, InvalidPriceSeriesError
+from algosystem.shared.metric_key import MetricKey
+
+
+class TestPackageExports:
+    def test_package_exports_new_facade(self):
+        assert algosystem.AlgoSystem is AlgoSystem
+        assert algosystem.run_backtest is run_backtest
+        assert algosystem.quick_backtest is quick_backtest
+        assert "AlgoSystem" in algosystem.__all__
+        assert "run_backtest" in algosystem.__all__
+        assert "quick_backtest" in algosystem.__all__
+        assert "ValidationMetricKey" in algosystem.__all__
+        assert "OverfitResults" in algosystem.__all__
+        assert "ParameterGrid" in algosystem.__all__
+        assert "StrategySpec" in algosystem.__all__
+        assert hasattr(AlgoSystem, "backtest")
+        assert hasattr(AlgoSystem, "tearsheet")
+        assert hasattr(AlgoSystem, "detect_overfitting")
+        assert hasattr(AlgoSystem, "validation_report")
+        assert hasattr(AlgoSystem, "save")
+        assert hasattr(AlgoSystem, "load")
+        assert hasattr(AlgoSystem, "compare")
+        assert hasattr(AlgoSystem, "print_summary")
+        assert hasattr(AlgoSystem, "export_data")
 
 
 class TestAlgoSystemAPI:
-    """Test the main AlgoSystem API class."""
-    
-    def test_run_backtest_basic(self, sample_price_series):
-        """Test basic backtest functionality."""
-        engine = AlgoSystem.run_backtest(sample_price_series)
-        
-        assert isinstance(engine, Engine)
-        assert engine.results is not None
-        assert 'metrics' in engine.results
-        assert 'equity' in engine.results
-    
-    def test_run_backtest_with_benchmark(self, sample_price_series, sample_benchmark_series):
-        """Test backtest with benchmark."""
-        engine = AlgoSystem.run_backtest(
+    def test_backtest_basic(self, sample_price_series):
+        result = AlgoSystem(calculator=FakeMetricsCalculator()).backtest(sample_price_series)
+
+        assert isinstance(result, BacktestResult)
+        assert result.metrics.get(MetricKey.TOTAL_RETURN) == 0.23
+        assert len(result.equity_curve) == len(sample_price_series)
+
+    def test_backtest_with_benchmark(self, sample_price_series, sample_benchmark_series):
+        result = AlgoSystem(calculator=FakeMetricsCalculator()).backtest(
+            data=sample_price_series, benchmark=sample_benchmark_series
+        )
+
+        assert isinstance(result, BacktestResult)
+        assert result.benchmark_curve is not None
+
+    def test_backtest_with_date_range(self, sample_price_series):
+        result = AlgoSystem(calculator=FakeMetricsCalculator()).backtest(
             data=sample_price_series,
-            benchmark=sample_benchmark_series
+            start="2020-01-15",
+            end="2020-02-15",
         )
-        
-        assert isinstance(engine, Engine)
-        assert engine.benchmark_series is not None
-        assert engine.results is not None
-    
-    def test_run_backtest_with_date_range(self, sample_price_series):
-        """Test backtest with custom date range."""
-        engine = AlgoSystem.run_backtest(
-            data=sample_price_series,
-            start_date='2020-01-15',
-            end_date='2020-02-15'
+
+        assert result.date_range.start == pd.to_datetime("2020-01-15")
+        assert result.date_range.end == pd.to_datetime("2020-02-15")
+
+    def test_backtest_dataframe_input(self, sample_dataframe):
+        result = AlgoSystem(calculator=FakeMetricsCalculator()).backtest(
+            data=sample_dataframe, price_column="Strategy"
         )
-        
-        assert isinstance(engine, Engine)
-        assert engine.start_date == pd.to_datetime('2020-01-15')
-        assert engine.end_date == pd.to_datetime('2020-02-15')
-    
-    def test_run_backtest_dataframe_input(self, sample_dataframe):
-        """Test backtest with DataFrame input."""
-        engine = AlgoSystem.run_backtest(
-            data=sample_dataframe,
-            price_column='Strategy'
+
+        assert isinstance(result, BacktestResult)
+        assert len(result.equity_curve) == len(sample_dataframe)
+
+    def test_backtest_invalid_input(self):
+        algo = AlgoSystem(calculator=FakeMetricsCalculator())
+
+        with pytest.raises(InvalidPriceSeriesError):
+            algo.backtest("invalid_data")
+
+        with pytest.raises(InvalidPriceSeriesError):
+            algo.backtest(None)
+
+    def test_module_run_backtest_uses_new_facade(self, sample_price_series):
+        with patch(
+            "algosystem.interfaces.api._default_calculator",
+            return_value=FakeMetricsCalculator(),
+        ):
+            result = run_backtest(sample_price_series)
+
+        assert isinstance(result, BacktestResult)
+
+    def test_deprecated_class_run_backtest_warns(self, sample_price_series):
+        with pytest.warns(DeprecationWarning):
+            result = AlgoSystem.run_backtest(
+                sample_price_series, calculator=FakeMetricsCalculator()
+            )
+
+        assert isinstance(result, BacktestResult)
+
+    def test_validation_facade_methods(self, sample_price_series, tmp_path):
+        from algosystem.backtesting.domain.equity_curve import EquityCurve
+
+        curve = EquityCurve.from_series(sample_price_series)
+        algo = AlgoSystem(calculator=FakeMetricsCalculator())
+
+        report = algo.detect_overfitting(
+            strategy="momentum",
+            returns=curve,
+            param_grid={"lookback": [3], "threshold": [0.0]},
+            n_reps=2,
+            n_workers=1,
+            seed=7,
         )
-        
-        assert isinstance(engine, Engine)
-        assert engine.results is not None
-    
-    def test_run_backtest_invalid_input(self):
-        """Test backtest with invalid input."""
-        with pytest.raises((TypeError, ValueError)):
-            AlgoSystem.run_backtest("invalid_data")
-        
-        with pytest.raises((TypeError, ValueError)):
-            AlgoSystem.run_backtest(None)
+        output = algo.validation_report(report, output=tmp_path / "overfit.html")
+
+        assert report.n_reps == 2
+        assert output.exists()
 
 
 class TestAlgoSystemResults:
-    """Test AlgoSystem results handling."""
-    
-    def test_print_results_basic(self, sample_price_series, capsys):
-        """Test basic results printing."""
-        engine = AlgoSystem.run_backtest(sample_price_series)
-        
-        # Should not raise an error
-        AlgoSystem.print_results(engine)
-        
-        # Test passes if no exception was raised
-        assert True
-    
-    def test_print_results_detailed(self, sample_price_series):
-        """Test detailed results printing."""
-        engine = AlgoSystem.run_backtest(sample_price_series)
-        
-        # Should not raise an error
-        AlgoSystem.print_results(engine, detailed=True)
-        
-        # Ensure no exception was raised
-        assert True
-    
-    def test_print_results_no_results(self, sample_price_series):
-        """Test printing results when no results available."""
-        engine = Engine(sample_price_series)  # Don't run the backtest
-        
-        AlgoSystem.print_results(engine)
-        
-        # Should handle gracefully
-        assert True
-    
-    def test_print_results_with_benchmark(self, sample_price_series, sample_benchmark_series):
-        """Test printing results with benchmark metrics."""
-        engine = AlgoSystem.run_backtest(
-            data=sample_price_series,
-            benchmark=sample_benchmark_series
-        )
-        
-        AlgoSystem.print_results(engine, detailed=True)
-        
-        # Should include benchmark metrics
-        assert True
+    def test_print_summary_basic(self, sample_price_series):
+        result = AlgoSystem(calculator=FakeMetricsCalculator()).backtest(sample_price_series)
 
+        AlgoSystem(calculator=FakeMetricsCalculator()).print_summary(result)
 
-class TestAlgoSystemDashboards:
-    """Test dashboard generation functionality."""
-    
-    @patch('algosystem.backtesting.dashboard.dashboard_generator.generate_dashboard')
-    def test_generate_dashboard_basic(self, mock_generate, sample_price_series):
-        """Test basic dashboard generation."""
-        engine = AlgoSystem.run_backtest(sample_price_series)
-        mock_generate.return_value = '/fake/path/dashboard.html'
-        
-        result = AlgoSystem.generate_dashboard(engine)
-        
-        assert result == '/fake/path/dashboard.html'
-        mock_generate.assert_called_once()
-    
-    @patch('algosystem.backtesting.dashboard.dashboard_generator.generate_standalone_dashboard')
-    def test_generate_standalone_dashboard(self, mock_generate, sample_price_series):
-        """Test standalone dashboard generation."""
-        engine = AlgoSystem.run_backtest(sample_price_series)
-        mock_generate.return_value = '/fake/path/standalone.html'
-        
-        result = AlgoSystem.generate_standalone_dashboard(engine)
-        
-        assert result == '/fake/path/standalone.html'
-        mock_generate.assert_called_once()
-    
-    def test_generate_dashboard_no_results(self, sample_price_series):
-        """Test dashboard generation when no results."""
-        engine = Engine(sample_price_series)  # Don't run backtest
-        
-        # Should auto-run the backtest
-        with patch('algosystem.backtesting.dashboard.dashboard_generator.generate_dashboard') as mock_generate:
-            mock_generate.return_value = '/fake/path/dashboard.html'
-            result = AlgoSystem.generate_dashboard(engine)
-            
-            assert engine.results is not None  # Should have been run
-            assert result == '/fake/path/dashboard.html'
+    def test_print_results_deprecated_shim(self, sample_price_series):
+        result = AlgoSystem(calculator=FakeMetricsCalculator()).backtest(sample_price_series)
+
+        with pytest.warns(DeprecationWarning):
+            AlgoSystem.print_results(result, detailed=True)
+
+    def test_print_results_no_result(self):
+        with pytest.warns(DeprecationWarning):
+            AlgoSystem.print_results(object())
 
 
 class TestAlgoSystemDataExport:
-    """Test data export functionality."""
-    
     def test_export_data_csv(self, sample_price_series, temp_directory):
-        """Test CSV data export."""
-        engine = AlgoSystem.run_backtest(sample_price_series)
-        output_path = os.path.join(temp_directory, 'test_export.csv')
-        
-        result = AlgoSystem.export_data(engine, output_path, format='csv')
-        
-        assert result == output_path
-        assert os.path.exists(output_path)
-        
-        # Verify the exported data
+        result = AlgoSystem(calculator=FakeMetricsCalculator()).backtest(sample_price_series)
+        output_path = Path(temp_directory) / "test_export.csv"
+
+        exported = AlgoSystem(calculator=FakeMetricsCalculator()).export_data(
+            result, output_path, format="csv"
+        )
+
+        assert exported == output_path
+        assert output_path.exists()
         exported_df = pd.read_csv(output_path, index_col=0, parse_dates=True)
-        assert 'equity' in exported_df.columns
-        assert len(exported_df) > 0
-    
+        assert "equity" in exported_df.columns
+        assert "returns" in exported_df.columns
+
     def test_export_data_excel(self, sample_price_series, temp_directory):
-        """Test Excel data export."""
-        engine = AlgoSystem.run_backtest(sample_price_series)
-        output_path = os.path.join(temp_directory, 'test_export.xlsx')
-        
-        result = AlgoSystem.export_data(engine, output_path, format='excel')
-        
-        assert result == output_path
-        assert os.path.exists(output_path)
-        
-        # Verify the exported data
+        result = AlgoSystem(calculator=FakeMetricsCalculator()).backtest(sample_price_series)
+        output_path = Path(temp_directory) / "test_export.xlsx"
+
+        exported = AlgoSystem(calculator=FakeMetricsCalculator()).export_data(
+            result, output_path, format="excel"
+        )
+
+        assert exported == output_path
+        assert output_path.exists()
         exported_df = pd.read_excel(output_path, index_col=0)
-        assert 'equity' in exported_df.columns
-        assert len(exported_df) > 0
-    
+        assert "equity" in exported_df.columns
+
     def test_export_data_invalid_format(self, sample_price_series, temp_directory):
-        """Test data export with invalid format."""
-        engine = AlgoSystem.run_backtest(sample_price_series)
-        output_path = os.path.join(temp_directory, 'test_export.txt')
-        
+        result = AlgoSystem(calculator=FakeMetricsCalculator()).backtest(sample_price_series)
+        output_path = Path(temp_directory) / "test_export.txt"
+
         with pytest.raises(ValueError):
-            AlgoSystem.export_data(engine, output_path, format='invalid')
-    
-    def test_export_data_no_results(self, sample_price_series, temp_directory):
-        """Test data export when no results available."""
-        engine = Engine(sample_price_series)  # Don't run backtest
-        output_path = os.path.join(temp_directory, 'test_export.csv')
-        
-        result = AlgoSystem.export_data(engine, output_path)
-        
-        assert result is None  # Should return None when no results
-    
-    @patch('matplotlib.pyplot.savefig')
-    @patch('matplotlib.pyplot.show')
-    @patch('matplotlib.pyplot.close')
-    def test_export_charts(self, mock_close, mock_show, mock_savefig, sample_price_series, temp_directory):
-        """Test chart export functionality."""
-        engine = AlgoSystem.run_backtest(sample_price_series)
-        
-        result = AlgoSystem.export_charts(engine, output_dir=temp_directory)
-        
-        assert isinstance(result, list)
-        assert len(result) > 0
-        
-        # Should have called savefig for each chart
-        assert mock_savefig.call_count > 0
-    
-    def test_export_charts_no_results(self, sample_price_series, temp_directory):
-        """Test chart export when no results available."""
-        engine = Engine(sample_price_series)  # Don't run backtest
-        
-        result = AlgoSystem.export_charts(engine, output_dir=temp_directory)
-        
-        assert result == []  # Should return empty list when no results
+            AlgoSystem(calculator=FakeMetricsCalculator()).export_data(
+                result, output_path, format="invalid"
+            )
 
 
-class TestAlgoSystemConfiguration:
-    """Test configuration management."""
-    
-    def test_load_config_default(self):
-        """Test loading default configuration."""
-        config = AlgoSystem.load_config()
-        
-        assert isinstance(config, dict)
-        assert 'metrics' in config
-        assert 'charts' in config
-        assert 'layout' in config
-    
-    def test_load_config_from_file(self, temp_directory):
-        """Test loading configuration from file."""
-        test_config = {
-            'metrics': [],
-            'charts': [],
-            'layout': {'max_cols': 2, 'title': 'Test'}
-        }
-        
-        config_path = os.path.join(temp_directory, 'test_config.json')
-        with open(config_path, 'w') as f:
-            json.dump(test_config, f)
-        
-        config = AlgoSystem.load_config(config_path)
-        
-        assert config == test_config
-    
-    def test_load_config_invalid_file(self, temp_directory):
-        """Test loading configuration from invalid file."""
-        config_path = os.path.join(temp_directory, 'nonexistent.json')
-        
-        # Should fall back to default config
-        config = AlgoSystem.load_config(config_path)
-        
-        assert isinstance(config, dict)
-        assert 'metrics' in config
-    
-    def test_save_config(self, temp_directory):
-        """Test saving configuration."""
-        test_config = {
-            'metrics': [],
-            'charts': [],
-            'layout': {'max_cols': 2, 'title': 'Test'}
-        }
-        
-        config_path = os.path.join(temp_directory, 'saved_config.json')
-        result = AlgoSystem.save_config(test_config, config_path)
-        
-        assert result == config_path
-        assert os.path.exists(config_path)
-        
-        # Verify saved content
-        with open(config_path, 'r') as f:
-            saved_config = json.load(f)
-        
-        assert saved_config == test_config
-    
-    def test_save_config_default_location(self):
-        """Test saving configuration to default location."""
-        test_config = {
-            'metrics': [],
-            'charts': [],
-            'layout': {'max_cols': 2, 'title': 'Test'}
-        }
-        
-        with patch('os.makedirs'), patch('builtins.open', create=True) as mock_open:
-            mock_file = MagicMock()
-            mock_open.return_value.__enter__.return_value = mock_file
-            
-            result = AlgoSystem.save_config(test_config)
-            
-            assert result is not None
-            mock_open.assert_called_once()
+class TestAlgoSystemPersistence:
+    def test_save_load_and_compare(self, sample_price_series, sample_benchmark_series):
+        repository = InMemoryBacktestRunRepository()
+        algo = AlgoSystem(calculator=FakeMetricsCalculator(), repository=repository)
+        first = algo.backtest(sample_price_series)
+        second = algo.backtest(sample_benchmark_series)
+
+        first_id = algo.save(first, name="first")
+        second_id = algo.save(second, name="second")
+        loaded = algo.load(first_id)
+        comparison = algo.compare([first_id, second_id])
+
+        assert loaded.run_id == first_id
+        assert list(comparison.columns) == [first_id.value, second_id.value]
+
+    def test_repository_required_for_persistence(self, sample_price_series):
+        result = AlgoSystem(calculator=FakeMetricsCalculator()).backtest(sample_price_series)
+        algo = AlgoSystem(calculator=FakeMetricsCalculator())
+
+        with pytest.raises(ConfigurationError):
+            algo.save(result)
 
 
 class TestAlgoSystemBenchmarks:
-    """Test benchmark integration."""
-    
-    @patch('algosystem.data.benchmark.fetch_benchmark_data')
-    def test_get_benchmark(self, mock_fetch):
-        """Test getting benchmark data."""
-        mock_data = pd.Series([100, 101, 102], index=pd.date_range('2020-01-01', periods=3))
-        mock_fetch.return_value = mock_data
-        
-        result = AlgoSystem.get_benchmark('sp500')
-        
+    def test_get_benchmark(self, monkeypatch):
+        mock_fetch = Mock(
+            return_value=pd.Series([100, 101, 102], index=pd.date_range("2020-01-01", periods=3))
+        )
+        _install_fake_benchmark_module(monkeypatch, fetch_benchmark_data=mock_fetch)
+
+        result = AlgoSystem.get_benchmark("sp500")
+
         assert isinstance(result, pd.Series)
         assert len(result) == 3
-        mock_fetch.assert_called_once_with('sp500', None, None)
-    
-    @patch('algosystem.api.get_benchmark_list')
-    @patch('algosystem.api.get_benchmark_info')
-    def test_list_benchmarks(self, mock_info, mock_list):
-        """Test listing benchmarks."""
-        mock_list.return_value = ['sp500', 'nasdaq']
-        mock_info.return_value = pd.DataFrame({
-            'Alias': ['sp500', 'nasdaq'],
-            'Category': ['Indices', 'Indices'],
-            'Description': ['S&P 500', 'NASDAQ']
-        })
-        
+        mock_fetch.assert_called_once_with("sp500", None, None)
+
+    def test_list_benchmarks(self, monkeypatch):
+        mock_list = Mock(return_value=["sp500", "nasdaq"])
+        mock_info = Mock(
+            return_value=pd.DataFrame(
+                {
+                    "Alias": ["sp500", "nasdaq"],
+                    "Category": ["Indices", "Indices"],
+                    "Description": ["S&P 500", "NASDAQ"],
+                }
+            )
+        )
+        _install_fake_benchmark_module(
+            monkeypatch,
+            get_benchmark_list=mock_list,
+            get_benchmark_info=mock_info,
+        )
+
         result = AlgoSystem.list_benchmarks()
-        
-        assert result == ['sp500', 'nasdaq']
+
+        assert result == ["sp500", "nasdaq"]
         mock_list.assert_called_once()
         mock_info.assert_called_once()
-    
-    @patch('algosystem.api.compare_benchmarks')
-    @patch('matplotlib.pyplot.show')
-    def test_compare_benchmarks(self, mock_show, mock_compare):
-        """Test comparing benchmarks."""
-        mock_data = pd.DataFrame({
-            'sp500': [100, 101, 102],
-            'nasdaq': [100, 102, 104]
-        }, index=pd.date_range('2020-01-01', periods=3))
-        mock_compare.return_value = mock_data
-        
-        result = AlgoSystem.compare_benchmarks(['sp500', 'nasdaq'], plot=True)
-        
+
+    def test_compare_benchmarks(self, monkeypatch):
+        mock_compare = Mock(
+            return_value=pd.DataFrame(
+                {"sp500": [100, 101, 102], "nasdaq": [100, 102, 104]},
+                index=pd.date_range("2020-01-01", periods=3),
+            )
+        )
+        _install_fake_benchmark_module(monkeypatch, compare_benchmarks=mock_compare)
+
+        result = AlgoSystem.compare_benchmarks(["sp500", "nasdaq"], plot=False)
+
         assert isinstance(result, pd.DataFrame)
-        assert 'sp500' in result.columns
-        assert 'nasdaq' in result.columns
-        mock_compare.assert_called_once()
-        mock_show.assert_called_once()
+        assert "sp500" in result.columns
+        assert "nasdaq" in result.columns
+        mock_compare.assert_called_once_with(["sp500", "nasdaq"], None, None)
+
+    def test_benchmark_comparison_empty_list(self, monkeypatch):
+        mock_compare = Mock(side_effect=ValueError("Empty benchmark list"))
+        _install_fake_benchmark_module(monkeypatch, compare_benchmarks=mock_compare)
+
+        with pytest.raises(ValueError):
+            AlgoSystem.compare_benchmarks([], plot=False)
 
 
 class TestQuickBacktest:
-    """Test the quick_backtest convenience function."""
-    
     def test_quick_backtest_basic(self, sample_price_series):
-        """Test basic quick backtest."""
-        with patch('algosystem.api.AlgoSystem.print_results') as mock_print:
-            engine = quick_backtest(sample_price_series)
-            
-            assert isinstance(engine, Engine)
-            assert engine.results is not None
-            mock_print.assert_called_once_with(engine)
-    
-    def test_quick_backtest_with_benchmark(self, sample_price_series, sample_benchmark_series):
-        """Test quick backtest with benchmark."""
-        with patch('algosystem.api.AlgoSystem.print_results') as mock_print:
-            engine = quick_backtest(sample_price_series, benchmark=sample_benchmark_series)
-            
-            assert isinstance(engine, Engine)
-            assert engine.benchmark_series is not None
-            mock_print.assert_called_once_with(engine)
-    
+        with (
+            patch(
+                "algosystem.interfaces.api._default_calculator",
+                return_value=FakeMetricsCalculator(),
+            ),
+            patch("algosystem.interfaces.api.AlgoSystem.print_summary") as mock_print,
+        ):
+            with pytest.warns(DeprecationWarning):
+                result = quick_backtest(sample_price_series)
+
+        assert isinstance(result, BacktestResult)
+        mock_print.assert_called_once_with(result)
+
     def test_quick_backtest_with_kwargs(self, sample_price_series):
-        """Test quick backtest with additional kwargs."""
-        with patch('algosystem.api.AlgoSystem.print_results') as mock_print:
-            engine = quick_backtest(
-                sample_price_series,
-                start_date='2020-01-15',
-                initial_capital=50000
-            )
-            
-            assert isinstance(engine, Engine)
-            assert engine.initial_capital == 50000
-            mock_print.assert_called_once_with(engine)
+        with (
+            patch(
+                "algosystem.interfaces.api._default_calculator",
+                return_value=FakeMetricsCalculator(),
+            ),
+            patch("algosystem.interfaces.api.AlgoSystem.print_summary") as mock_print,
+        ):
+            with pytest.warns(DeprecationWarning):
+                result = quick_backtest(
+                    sample_price_series, start_date="2020-01-15", initial_capital=50000
+                )
 
-
-class TestAlgoSystemErrorHandling:
-    """Test error handling and edge cases."""
-    
-    def test_export_charts_with_benchmark(self, sample_price_series, sample_benchmark_series, temp_directory):
-        """Test chart export with benchmark data."""
-        engine = AlgoSystem.run_backtest(sample_price_series, benchmark=sample_benchmark_series)
-        
-        with patch('matplotlib.pyplot.savefig') as mock_savefig, \
-             patch('matplotlib.pyplot.show'), \
-             patch('matplotlib.pyplot.close'):
-            
-            result = AlgoSystem.export_charts(engine, output_dir=temp_directory)
-            
-            assert isinstance(result, list)
-            assert len(result) > 0
-            # Should include benchmark comparison chart
-            assert any('benchmark' in path.lower() for path in result)
-    
-    def test_config_with_malformed_json(self, temp_directory):
-        """Test loading malformed JSON config."""
-        config_path = os.path.join(temp_directory, 'malformed.json')
-        with open(config_path, 'w') as f:
-            f.write('{"invalid": json}')
-        
-        # Should fall back to default config
-        config = AlgoSystem.load_config(config_path)
-        
-        assert isinstance(config, dict)
-        assert 'metrics' in config
-    
-    def test_save_config_permission_error(self, temp_directory):
-        """Test saving config with permission error."""
-        test_config = {'test': 'config'}
-        
-        with patch('builtins.open', side_effect=PermissionError("Permission denied")):
-            result = AlgoSystem.save_config(test_config, '/invalid/path/config.json')
-            
-            assert result is None
-    
-    def test_export_data_with_minimal_results(self, temp_directory):
-        """Test data export with minimal backtest results."""
-        # Create minimal price series
-        minimal_data = pd.Series([100, 101], index=pd.date_range('2020-01-01', periods=2))
-        engine = AlgoSystem.run_backtest(minimal_data)
-        
-        output_path = os.path.join(temp_directory, 'minimal_export.csv')
-        result = AlgoSystem.export_data(engine, output_path)
-        
-        assert result == output_path
-        assert os.path.exists(output_path)
-    
-    def test_benchmark_comparison_empty_list(self):
-        """Test benchmark comparison with empty list."""
-        with patch('algosystem.api.compare_benchmarks') as mock_compare:
-            mock_compare.side_effect = ValueError("Empty benchmark list")
-            
-            with pytest.raises(ValueError):
-                AlgoSystem.compare_benchmarks([])
+        assert isinstance(result, BacktestResult)
+        assert result.initial_capital.amount == 50000
+        mock_print.assert_called_once_with(result)
 
 
 class TestAlgoSystemIntegration:
-    """Test integration scenarios."""
-    
     def test_complete_workflow(self, sample_price_series, temp_directory):
-        """Test complete workflow from backtest to export."""
-        # Step 1: Run backtest
-        engine = AlgoSystem.run_backtest(sample_price_series)
-        
-        # Step 2: Export data
-        data_path = os.path.join(temp_directory, 'workflow_data.csv')
-        data_result = AlgoSystem.export_data(engine, data_path)
-        
-        # Step 3: Export charts
-        with patch('matplotlib.pyplot.savefig'), \
-             patch('matplotlib.pyplot.show'), \
-             patch('matplotlib.pyplot.close'):
-            charts_result = AlgoSystem.export_charts(engine, temp_directory)
-        
-        # Step 4: Generate dashboard
-        with patch('algosystem.backtesting.dashboard.dashboard_generator.generate_dashboard') as mock_dashboard:
-            mock_dashboard.return_value = '/fake/dashboard.html'
-            dashboard_result = AlgoSystem.generate_dashboard(engine)
-        
-        # Verify all steps completed
+        algo = AlgoSystem(calculator=FakeMetricsCalculator())
+        result = algo.backtest(sample_price_series)
+        data_path = Path(temp_directory) / "workflow_data.csv"
+
+        data_result = algo.export_data(result, data_path)
+
         assert data_result == data_path
-        assert isinstance(charts_result, list)
-        assert dashboard_result == '/fake/dashboard.html'
-    
-    def test_workflow_with_custom_config(self, sample_price_series, temp_directory):
-        """Test workflow with custom configuration."""
-        # Create custom config
-        custom_config = {
-            'metrics': [
-                {
-                    'id': 'total_return',
-                    'type': 'Percentage',
-                    'title': 'Total Return',
-                    'value_key': 'total_return',
-                    'position': {'row': 0, 'col': 0}
-                }
-            ],
-            'charts': [],
-            'layout': {'max_cols': 1, 'title': 'Custom Dashboard'}
-        }
-        
-        config_path = os.path.join(temp_directory, 'custom_config.json')
-        config_result = AlgoSystem.save_config(custom_config, config_path)
-        
-        # Load and verify config
-        loaded_config = AlgoSystem.load_config(config_path)
-        
-        assert config_result == config_path
-        assert loaded_config == custom_config
-    
+        assert data_path.exists()
+        assert MetricKey.TOTAL_RETURN.value in result.metrics.to_dict()
+
     def test_multiple_backtests_comparison(self, sample_price_series, sample_benchmark_series):
-        """Test running and comparing multiple backtests."""
-        # Run multiple backtests
-        engine1 = AlgoSystem.run_backtest(sample_price_series)
-        engine2 = AlgoSystem.run_backtest(sample_benchmark_series)
-        
-        # Compare results
-        metrics1 = engine1.get_metrics()
-        metrics2 = engine2.get_metrics()
-        
-        assert isinstance(metrics1, dict)
-        assert isinstance(metrics2, dict)
-        assert 'total_return' in metrics1
-        assert 'total_return' in metrics2
-        
-        # Results should be different (different data)
-        assert metrics1['total_return'] != metrics2['total_return']
+        algo = AlgoSystem(calculator=FakeMetricsCalculator())
+        first = algo.backtest(sample_price_series)
+        second = algo.backtest(sample_benchmark_series)
 
+        assert first.metrics.to_dict() == second.metrics.to_dict()
+        assert first.equity_curve.values.iloc[-1] != second.equity_curve.values.iloc[-1]
 
-class TestAlgoSystemPerformance:
-    """Test performance aspects of API."""
-    
     def test_large_dataset_handling(self):
-        """Test API with large dataset."""
-        # Create large dataset
-        dates = pd.date_range('2020-01-01', periods=2000, freq='D')
-        np.random.seed(42)
-        returns = np.random.normal(0.001, 0.02, 2000)
-        large_data = pd.Series(100 * (1 + pd.Series(returns)).cumprod(), index=dates)
-        
-        # Should handle large dataset without issues
-        engine = AlgoSystem.run_backtest(large_data)
-        
-        assert engine.results is not None
-        assert len(engine.results['equity']) == len(large_data)
-    
-    def test_multiple_chart_export_performance(self, sample_price_series, temp_directory):
-        """Test performance of exporting multiple charts."""
-        engine = AlgoSystem.run_backtest(sample_price_series)
-        
-        import time
-        
-        with patch('matplotlib.pyplot.savefig') as mock_savefig, \
-             patch('matplotlib.pyplot.show'), \
-             patch('matplotlib.pyplot.close'):
-            
-            start_time = time.time()
-            result = AlgoSystem.export_charts(engine, temp_directory)
-            end_time = time.time()
-            
-            # Should complete reasonably quickly
-            assert (end_time - start_time) < 10  # Less than 10 seconds
-            assert len(result) > 0
-            assert mock_savefig.call_count > 0
+        dates = pd.date_range("2020-01-01", periods=2000, freq="D")
+        rng = np.random.default_rng(42)
+        returns = rng.normal(0.001, 0.02, 2000)
+        large_data = pd.Series(100 * np.cumprod(1 + returns), index=dates)
+
+        result = AlgoSystem(calculator=FakeMetricsCalculator()).backtest(large_data)
+
+        assert len(result.equity_curve) == len(large_data)
 
 
-if __name__ == "__main__":
-    pytest.main([__file__])
+def _install_fake_benchmark_module(monkeypatch, **functions):
+    module = types.ModuleType("algosystem.marketdata.benchmark")
+    module.DEFAULT_BENCHMARK = "sp500"
+    module.fetch_benchmark_data = functions.get("fetch_benchmark_data", Mock())
+    module.get_benchmark_list = functions.get("get_benchmark_list", Mock(return_value=[]))
+    module.get_benchmark_info = functions.get(
+        "get_benchmark_info",
+        Mock(
+            return_value=pd.DataFrame(
+                columns=["Alias", "Category", "Description"],
+            )
+        ),
+    )
+    module.compare_benchmarks = functions.get("compare_benchmarks", Mock())
+    monkeypatch.setitem(sys.modules, "algosystem.marketdata.benchmark", module)
+    return module

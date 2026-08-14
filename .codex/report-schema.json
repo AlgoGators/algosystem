@@ -1,0 +1,78 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["phase", "status", "summary", "files_added", "files_deleted", "files_modified", "checks", "rule_compliance", "deviations", "followups"],
+  "properties": {
+    "phase": {
+      "type": "string",
+      "description": "Phase identifier, e.g. 'phase-1'"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["complete", "partial", "blocked"],
+      "description": "complete = every acceptance criterion met; partial = shipped but something is unfinished; blocked = could not proceed"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Under 800 characters. What changed structurally, in prose. Not a file list."
+    },
+    "files_added": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Repo-relative paths created"
+    },
+    "files_deleted": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Repo-relative paths deleted"
+    },
+    "files_modified": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Repo-relative paths modified"
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["import_ok", "pytest_command", "tests_passed", "tests_failed", "tests_errors", "failing_tests", "format_ok", "new_failures_introduced"],
+      "properties": {
+        "import_ok": {"type": "boolean", "description": "python -c 'import algosystem' succeeded cleanly"},
+        "pytest_command": {"type": "string", "description": "The exact pytest command run"},
+        "tests_passed": {"type": "integer", "description": "Real count from the run. Use -1 if it could not run."},
+        "tests_failed": {"type": "integer"},
+        "tests_errors": {"type": "integer"},
+        "failing_tests": {"type": "array", "items": {"type": "string"}, "description": "Node IDs of failing tests"},
+        "format_ok": {"type": "boolean", "description": "black --check and isort --check both pass"},
+        "new_failures_introduced": {"type": "boolean", "description": "True if this phase broke a test that passed before it"}
+      }
+    },
+    "rule_compliance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["r1_domain_has_no_outside_imports", "r2_dependencies_point_inward", "r3_vendors_behind_ports", "r4_metric_names_declared_once", "r5_no_error_dicts_or_bare_except", "r6_no_io_in_domain", "violations"],
+      "properties": {
+        "r1_domain_has_no_outside_imports": {"type": "boolean"},
+        "r2_dependencies_point_inward": {"type": "boolean"},
+        "r3_vendors_behind_ports": {"type": "boolean"},
+        "r4_metric_names_declared_once": {"type": "boolean"},
+        "r5_no_error_dicts_or_bare_except": {"type": "boolean"},
+        "r6_no_io_in_domain": {"type": "boolean"},
+        "violations": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Every place you knowingly violated a rule, as 'R<n>: file:line — why'. Empty array only if genuinely none."
+        }
+      }
+    },
+    "deviations": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Anything done differently from SPEC.md or the phase prompt, and why. Empty only if you followed it exactly."
+    },
+    "followups": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Work deliberately deferred, and decisions a human needs to make."
+    }
+  }
+}

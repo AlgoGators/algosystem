@@ -5,8 +5,7 @@ venv
 .env
 
 # poetry
-dist
-poetry.lock
+dist/
 
 # docs
 docs/_build/
@@ -14,7 +13,7 @@ docs/_build/
 # testing
 .coverage
 coverage.xml
-htmlcov
+htmlcov/
 test_dashboard/
 temp.py
 
@@ -36,3 +35,14 @@ nd.json
 debug_config.json
 benchmark.csv
 strategy.csv
+# codex phase reports
+.codex/reports/
+
+poetry.lock
+
+# riley-opt staging area (not part of the package)
+.codex/incoming/
+
+# Artifacts produced by running the example notebooks
+examples/*.html
+examples/.ipynb_checkpoints/
