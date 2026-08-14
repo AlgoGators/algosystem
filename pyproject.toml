@@ -37,7 +37,7 @@ ipython = ">=8.18.1,<9"
 pyarrow = ">=23.0.1"
 rich = "^14.0.0"
 openpyxl = "^3.1.5"
-yfinance = "^0.2.61"
+yfinance = ">=0.2.61,<1.6.0"
 python-dotenv = ">=1.2.2"
 psycopg2 = "^2.9.10"
 # Declared for security floors only; these are transitive at runtime.
