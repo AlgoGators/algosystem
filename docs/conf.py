@@ -1,10 +1,4 @@
-"""Sphinx configuration for the AlgoSystem docs site.
-
-Finishes what pyproject.toml's [tool.poetry.group.docs] dependencies
-(sphinx, sphinx-rtd-theme, sphinx-copybutton, myst-parser) already scaffolded --
-the docs/ directory had five written guides (installation, CLI, API, benchmark,
-dashboard) with no site to serve them.
-"""
+"""Sphinx configuration for the AlgoSystem docs site."""
 
 import os
 import sys
@@ -16,7 +10,7 @@ copyright = "AlgoGators"
 author = "AlgoGators Team"
 
 extensions = [
-    "myst_parser",  # lets Sphinx consume the existing .md guides directly
+    "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx_copybutton",

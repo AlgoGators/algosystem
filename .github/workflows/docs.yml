@@ -1,9 +1,7 @@
 name: Build and Deploy Docs
 
 # Finishes the docs setup pyproject.toml already scaffolded ([tool.poetry.group.
-# docs]: sphinx, sphinx-rtd-theme, sphinx-copybutton, myst-parser) but which had
-# no build/deploy workflow -- the 5 guides already written under docs/ (install,
-# CLI, API, benchmark, dashboard) were sitting unpublished.
+# docs]: sphinx, sphinx-rtd-theme, sphinx-copybutton, myst-parser).
 
 on:
   push:

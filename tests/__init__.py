@@ -7,11 +7,9 @@ ensuring that all major functionality works correctly and handles edge cases gra
 Test Structure:
 - test_engine.py: Tests for the core Engine class
 - test_metrics.py: Tests for performance metrics calculations
-- test_dashboard_generation.py: Tests for dashboard creation and export
-- test_web_app.py: Tests for web application components
 - test_cli.py: Tests for command-line interface
 - test_risk_analysis.py: Tests for risk analysis functions
-- test_performance_analysis.py: Tests for performance analysis functions
+- test_analysis.py: Tests for analysis functions
 - conftest.py: Test fixtures and setup
 
 Running Tests:

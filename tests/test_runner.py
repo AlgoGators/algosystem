@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 
-def run_tests(test_type="all", coverage=False, verbose=False, specific_test=None):
+def run_tests(test_type="all", coverage=False, verbose=False, specific_test=None):  # noqa: C901
     """
     Run tests with specified configuration.
 
@@ -78,24 +78,14 @@ def run_linting():
     print("Running black (code formatting)...")
     black_result = subprocess.run(["black", "--check", "algosystem", "tests"])
 
-    print("\nRunning flake8 (linting)...")
-    flake8_result = subprocess.run(
-        [
-            "flake8",
-            "algosystem",
-            "tests",
-            "--max-line-length=88",
-            "--extend-ignore=E203,W503",
-        ]
-    )
+    print("\nRunning ruff (linting)...")
+    ruff_result = subprocess.run(["ruff", "check", "algosystem", "tests"])
 
     print("\nRunning mypy (type checking)...")
     mypy_result = subprocess.run(["mypy", "algosystem", "--ignore-missing-imports"])
 
     # Return overall result
-    return max(
-        black_result.returncode, flake8_result.returncode, mypy_result.returncode
-    )
+    return max(black_result.returncode, ruff_result.returncode, mypy_result.returncode)
 
 
 def run_performance_tests():
@@ -118,12 +108,12 @@ for size in sizes:
     dates = pd.date_range('2020-01-01', periods=size, freq='D')
     returns = np.random.normal(0.001, 0.02, size)
     prices = 100 * (1 + pd.Series(returns, index=dates)).cumprod()
-    
+
     start_time = time.time()
     engine = Engine(prices)
     results = engine.run()
     end_time = time.time()
-    
+
     execution_time = end_time - start_time
     times.append(execution_time)
     print(f"  Time: {execution_time:.3f} seconds")
@@ -204,20 +194,12 @@ def main():
     )
     parser.add_argument("--coverage", action="store_true", help="Run with coverage")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
-    parser.add_argument(
-        "--lint", action="store_true", help="Run linting instead of tests"
-    )
-    parser.add_argument(
-        "--performance", action="store_true", help="Run performance tests"
-    )
+    parser.add_argument("--lint", action="store_true", help="Run linting instead of tests")
+    parser.add_argument("--performance", action="store_true", help="Run performance tests")
     parser.add_argument("--ci", action="store_true", help="Run CI test suite")
-    parser.add_argument(
-        "--report", action="store_true", help="Generate comprehensive test report"
-    )
+    parser.add_argument("--report", action="store_true", help="Generate comprehensive test report")
     parser.add_argument("--test", help="Specific test file or test to run")
-    parser.add_argument(
-        "--install-deps", action="store_true", help="Install test dependencies"
-    )
+    parser.add_argument("--install-deps", action="store_true", help="Install test dependencies")
 
     args = parser.parse_args()
 

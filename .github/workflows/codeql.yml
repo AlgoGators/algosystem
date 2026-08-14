@@ -1,7 +1,7 @@
 name: CodeQL
 
 # GitHub-native static analysis (SAST) for the Python codebase. Complements the
-# existing test.yml (pytest + black/flake8/mypy). Results appear under
+# existing test.yml (pytest + black/ruff/mypy). Results appear under
 # Security > Code scanning.
 
 on:
