@@ -30,7 +30,7 @@ class TestBruteforceValidation:
         # Brute-force: re-run all passes manually
         keys = sorted(param_grid.keys())
         values = [param_grid[k] for k in keys]
-        plist = [dict(zip(keys, combo)) for combo in itertools.product(*values)]
+        plist = [dict(zip(keys, combo, strict=True)) for combo in itertools.product(*values)]
         n_params = len(plist)
 
         master_rng = np.random.default_rng(55)
