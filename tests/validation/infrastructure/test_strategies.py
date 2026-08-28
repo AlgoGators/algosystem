@@ -128,7 +128,8 @@ class TestWalkForward:
 
         grid = {"lookback": [5, 10, 20, 40], "threshold": [0.0, 0.001]}
         keys = sorted(grid.keys())
-        plist = [dict(zip(keys, c)) for c in itertools.product(*[grid[k] for k in keys])]
+        combos = itertools.product(*[grid[k] for k in keys])
+        plist = [dict(zip(keys, c, strict=True)) for c in combos]
 
         is_sharpes = [momentum_backtest(p, is_data) for p in plist]
         best_idx = np.argmax(is_sharpes)
