@@ -1,171 +1,48 @@
-# CLI Reference Guide
+# CLI Guide
 
-## Core Commands
+The CLI is a thin adapter over the same backtesting, tearsheet, validation,
+benchmark, and repository use cases exposed by the Python API.
 
-### Dashboard Generation
+## Backtest
 
 ```bash
-# Basic dashboard
-algosystem dashboard strategy.csv
-
-# With benchmark
-algosystem dashboard strategy.csv --benchmark sp500
-
-# Custom output
-algosystem dashboard strategy.csv --output-file my_dashboard.html
-
-# Date range
-algosystem dashboard strategy.csv --start-date 2022-01-01 --end-date 2022-12-31
-
-# Interactive dashboard
-algosystem render strategy.csv --output-dir ./dashboard/
+algosystem backtest strategy.csv --price-column Strategy --detailed
+algosystem backtest strategy.csv --benchmark sp500 --start 2022-01-01 --end 2023-01-01
 ```
 
-**Options:**
-- `--output-file, -o`: Output HTML file
-- `--benchmark, -b`: Benchmark alias or file
-- `--start-date/--end-date`: Date range (YYYY-MM-DD)
-- `--config, -c`: Custom configuration
-- `--open-browser`: Open in browser
-- `--force-refresh`: Refresh benchmark data
-
-### Visual Dashboard Editor
+## Tearsheet
 
 ```bash
-# Launch editor
-algosystem launch
-
-# Custom host/port
-algosystem launch --host 0.0.0.0 --port 8080
-
-# Load configuration
-algosystem launch --config my_config.json
-
-# Save changes
-algosystem launch --save-config updated_config.json
+algosystem tearsheet strategy.csv --price-column Strategy --output tearsheet.html
+algosystem tearsheet strategy.csv --mode basic --open
 ```
 
-### Configuration Management
+## Validation
 
 ```bash
-# Create configuration
-algosystem create-config my_config.json
-
-# View configuration
-algosystem show-config my_config.json
-
-# List configurations
-algosystem list-configs
-
-# Reset to defaults
-algosystem reset-user-config
+algosystem validate strategy.csv --strategy momentum --reps 200 --seed 7 --output overfit.html
+algosystem validate-strategies
 ```
 
-### Benchmark Management
+Validation reports are local HTML files, but the charts load Plotly from a CDN
+when opened in a browser.
+
+## Benchmarks
 
 ```bash
-# List benchmarks
 algosystem benchmarks
-
-# Show details
-algosystem benchmarks --info
-
-# Fetch specific benchmark
-algosystem benchmarks sp500
-
-# Compare benchmarks
-algosystem compare-benchmarks sp500 nasdaq gold
-
-# Export comparison
-algosystem compare-benchmarks sp500 nasdaq --output-file comparison.csv
 ```
 
-### Testing
+## Database
 
 ```bash
-# Quick test
-algosystem test
-
-# Custom test
-algosystem test --periods 500 --benchmark nasdaq --open-browser
+algosystem db init
+algosystem db save strategy.csv --price-column Strategy --name strategy-v1
+algosystem db list
+algosystem db show RUN_ID
+algosystem db compare RUN_ID RUN_ID
+algosystem db delete RUN_ID
 ```
 
-## Available Benchmarks
-
-### Stock Indices
-- `sp500` - S&P 500
-- `nasdaq` - NASDAQ Composite
-- `djia` - Dow Jones
-- `russell2000` - Russell 2000
-- `vix` - Volatility Index
-
-### International
-- `europe` - EURO STOXX 50
-- `uk` - FTSE 100
-- `japan` - Nikkei 225
-- `china` - Shanghai Composite
-- `emerging_markets` - MSCI Emerging Markets
-
-### Sectors
-- `technology` - Technology Sector
-- `healthcare` - Healthcare Sector
-- `financials` - Financial Sector
-- `energy` - Energy Sector
-- `utilities` - Utilities Sector
-
-### Asset Classes
-- `gold` - Gold ETF
-- `treasury_bonds` - Treasury Bonds
-- `corporate_bonds` - Corporate Bonds
-- `real_estate` - Real Estate ETF
-- `commodities` - Commodities Index
-
-## Command Examples
-
-### Complete Workflow
-```bash
-# 1. Create configuration
-algosystem create-config my_config.json
-
-# 2. Generate dashboard with benchmark
-algosystem dashboard strategy.csv \
-  --benchmark sp500 \
-  --config my_config.json \
-  --output-file results.html \
-  --open-browser
-
-# 3. Compare multiple benchmarks
-algosystem compare-benchmarks sp500 nasdaq gold \
-  --start-date 2022-01-01 \
-  --metrics \
-  --output-file benchmark_comparison.csv
-```
-
-### Interactive Development
-```bash
-# 1. Launch editor
-algosystem launch --port 8080
-
-# 2. Edit configuration in browser
-# (Visit http://localhost:8080)
-
-# 3. Save configuration
-# (Use editor's save functionality)
-
-# 4. Generate final dashboard
-algosystem dashboard strategy.csv --config edited_config.json
-```
-
-## Data Format Requirements
-
-CSV format:
-```csv
-Date,Strategy
-2022-01-01,100000.00
-2022-01-02,100500.00
-2022-01-03,99800.00
-```
-
-- Date column as index (YYYY-MM-DD)
-- Price/value column representing portfolio value
-- No missing values in the price column
+Database commands read connection settings from `DB_HOST`, `DB_PORT`, `DB_NAME`,
+`DB_USER`, and `DB_PASSWORD`. A local `.env` file is loaded by the CLI entry point.

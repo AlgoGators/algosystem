@@ -2,129 +2,64 @@ name: Run Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9, "3.10", "3.11"]
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        version: latest
-        virtualenvs-create: true
-        virtualenvs-in-project: true
-    
-    - name: Load cached venv
-      id: cached-poetry-dependencies
-      uses: actions/cache@v3
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
-    
-    - name: Install dependencies
-      run: |
-        poetry install --no-interaction --no-root
-        # Explicitly install IPython to ensure it's available
-        poetry add ipython
-    
-    - name: Install project
-      run: poetry install --no-interaction
-    
-    - name: Run tests with coverage
-      run: |
-        poetry run pytest --cov=algosystem --cov-report=xml --cov-report=html
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
-    
-    - name: Run linting
-      run: |
-        poetry run black --check algosystem tests
-        poetry run flake8 algosystem tests
-    
-    - name: Run type checking
-      run: |
-        poetry run mypy algosystem
-      continue-on-error: true  # Don't fail CI on type errors for now
+      - uses: actions/checkout@v4
 
-  test-integration:
-    runs-on: ubuntu-latest
-    needs: test
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
-    
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-    
-    - name: Install dependencies
-      run: |
-        poetry install --no-interaction
-        # Explicitly install IPython to ensure it's available
-        poetry add ipython
-    
-    - name: Run integration tests
-      run: |
-        poetry run pytest -m integration -v
-      continue-on-error: true  # Integration tests might fail due to external dependencies
-    
-    - name: Test CLI commands
-      run: |
-        # Test CLI installation and basic commands
-        poetry run algosystem --help
-        poetry run algosystem dashboard --help
-        poetry run algosystem launch --help
-      continue-on-error: true
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-  test-examples:
-    runs-on: ubuntu-latest
-    needs: test
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
-    
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-    
-    - name: Install dependencies
-      run: |
-        poetry install --no-interaction
-        # Explicitly install IPython to ensure it's available
-        poetry add ipython
-    
-    - name: Test examples
-      run: |
-        # Test that examples can be imported without errors
-        cd examples
-        poetry run python -c "import sys; sys.path.append('..'); import basic_backtest"
-        poetry run python -c "import sys; sys.path.append('..'); import dashboard_customization"
-      continue-on-error: true
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Run tests
+        run: poetry run python -m pytest tests/ -q
+
+      - name: Check formatting
+        run: |
+          poetry run python -m black --check algosystem tests
+          poetry run python -m isort --check-only algosystem tests
+
+      - name: Run Ruff
+        run: poetry run python -m ruff check algosystem tests
+
+      - name: Lint imports
+        run: poetry run lint-imports
+
+      - name: Test CLI help
+        run: |
+          poetry run algosystem --help
+          poetry run algosystem backtest --help
+          poetry run algosystem tearsheet --help
+          poetry run algosystem benchmarks --help
+          poetry run algosystem db --help
+          poetry run algosystem db save --help
+          poetry run algosystem db list --help
+          poetry run algosystem db show --help
+          poetry run algosystem db compare --help
+          poetry run algosystem db delete --help
+          poetry run algosystem db init --help

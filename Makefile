@@ -10,7 +10,7 @@ PYTHON  ?= python
 PACKAGE ?= algosystem
 
 .DEFAULT_GOAL := help
-.PHONY: help install test test-cov lint format typecheck docs clean
+.PHONY: help install test test-cov lint format typecheck docs clean check
 
 help: ## Show available targets
 	@$(PYTHON) -c "from pathlib import Path; import re; rows=[]; pattern=re.compile(r'^([A-Za-z_-]+):.*?## (.*)$$'); [rows.append(m.groups()) for line in Path('Makefile').read_text().splitlines() for m in [pattern.match(line)] if m]; print('algosystem -- backtesting and dashboard library'); print(); [print('  {0:<12} {1}'.format(name, desc)) for name, desc in sorted(rows)]"
@@ -29,7 +29,8 @@ test-cov: ## Run tests with a coverage report
 lint: ## Check formatting and lint rules (read-only)
 	@$(POETRY) run black --check $(PACKAGE) tests
 	@$(POETRY) run isort --check-only $(PACKAGE) tests
-	@$(POETRY) run ruff check $(PACKAGE)
+	@$(POETRY) run ruff check $(PACKAGE) tests
+	@$(POETRY) run lint-imports
 
 format: ## Auto-fix formatting and import order
 	@$(POETRY) run black $(PACKAGE) tests
@@ -43,6 +44,8 @@ docs: ## Build the Sphinx docs site
 	@$(POETRY) install --only docs --no-root
 	@$(POETRY) run sphinx-build -b html docs docs/_build/html
 	@$(PYTHON) -c "print('Docs built -> docs/_build/html/index.html')"
+
+check: lint test ## Everything CI runs on a pull request
 
 clean: ## Remove caches and build artifacts
 	@$(PYTHON) -c "import shutil; from pathlib import Path; [shutil.rmtree(p, ignore_errors=True) for p in Path('.').rglob('__pycache__')]; [shutil.rmtree(Path(p), ignore_errors=True) for p in ('.pytest_cache', '.mypy_cache', '.ruff_cache', 'dist', 'docs/_build')]; print('Cleaned caches and build artifacts.')"

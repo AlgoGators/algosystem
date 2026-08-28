@@ -1,0 +1,63 @@
+name: Publish to PyPI
+
+# Tag-triggered release: build the wheel/sdist and publish via PyPI Trusted
+# Publishing (OIDC -- no long-lived API token stored as a secret).
+#
+# REQUIRES a one-time manual step on pypi.org: add a Trusted Publisher for this
+# exact repo + workflow filename (PyPI project settings > Publishing). Until
+# that's configured, the publish step will fail with an authentication error.
+#
+# NOTE on versions: algosystem is ALREADY on PyPI (currently at 0.1.9, 10
+# releases), published manually up to now -- but pyproject.toml on main here
+# still says version = "0.1.7". Bump [tool.poetry].version to something newer
+# than the latest published release BEFORE pushing a matching tag, or the
+# publish step will fail (PyPI rejects re-uploading an existing version).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      - name: Build wheel and sdist
+        run: poetry build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/algosystem
+    permissions:
+      id-token: write # required for OIDC trusted publishing
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
