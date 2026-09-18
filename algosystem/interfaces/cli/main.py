@@ -15,8 +15,9 @@ from rich.table import Table
 
 from algosystem import __version__
 from algosystem.interfaces.api import AlgoSystem
-from algosystem.shared.errors import AlgoSystemError
+from algosystem.shared.errors import AlgoSystemError, ValidationError
 from algosystem.shared.values import RunId
+from algosystem.validation.domain.validation_metric import ValidationMetricKey
 
 from .loaders import load_benchmark_input, load_prices
 
@@ -180,6 +181,63 @@ def validate(
                 open_browser=open_browser,
             )
             console.print(f"Rendered validation report: {rendered}")
+    except (AlgoSystemError, ValueError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+
+@cli.command()
+@click.argument("input_file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--benchmark", help="Benchmark alias or CSV file used to define the regimes.")
+@click.option(
+    "--regimes",
+    "n_regimes",
+    type=int,
+    default=3,
+    show_default=True,
+    help="Number of volatility buckets.",
+)
+@click.option(
+    "--vol-window",
+    type=int,
+    default=21,
+    show_default=True,
+    help="Rolling window for the volatility estimate.",
+)
+@click.option("--start", help="Start date, e.g. 2022-01-01.")
+@click.option("--end", help="End date, e.g. 2023-01-01.")
+@click.option("--price-column", help="Price/equity column for multi-column CSV files.")
+def regimes(
+    input_file: Path,
+    benchmark: Optional[str],
+    n_regimes: int,
+    vol_window: int,
+    start: Optional[str],
+    end: Optional[str],
+    price_column: Optional[str],
+) -> None:
+    """Break performance down by volatility regime from a CSV price/equity series."""
+    try:
+        prices = load_prices(input_file)
+        series = _select_price_series(prices, price_column=price_column, start=start, end=end)
+        from algosystem.backtesting.domain.equity_curve import EquityCurve
+
+        benchmark_series = load_benchmark_input(benchmark, start=start, end=end)
+        if benchmark_series is not None:
+            series, benchmark_aligned = _intersect_on_dates(series, benchmark_series)
+            market_curve = EquityCurve.from_series(benchmark_aligned)
+        else:
+            market_curve = None
+        equity_curve = EquityCurve.from_series(series)
+
+        from algosystem.validation.application.analyze_regimes import AnalyzeRegimes
+
+        result = AnalyzeRegimes().execute(
+            equity_curve,
+            market_returns=market_curve,
+            n_regimes=n_regimes,
+            vol_window=vol_window,
+        )
+        _print_regime_summary(result)
     except (AlgoSystemError, ValueError) as exc:
         raise click.ClickException(str(exc)) from exc
 
@@ -393,6 +451,39 @@ def _parse_param_value(value: str) -> object:
 
 def _format_param_grid(grid: dict[str, list[object]]) -> str:
     return "; ".join(f"{name}={values}" for name, values in grid.items())
+
+
+def _intersect_on_dates(series, benchmark):
+    """Restrict both series to the dates they share, so regimes align positionally."""
+    common = series.index.intersection(benchmark.index)
+    if len(common) < 2:
+        raise ValidationError(
+            "strategy and benchmark share fewer than two dates; "
+            "check the benchmark covers the selected range"
+        )
+    return series.loc[common].sort_index(), benchmark.loc[common].sort_index()
+
+
+def _print_regime_summary(result: object) -> None:
+    metrics = result.to_metrics()
+    sharpes = metrics[ValidationMetricKey.REGIME_SHARPES.value]
+    fracs = metrics[ValidationMetricKey.REGIME_FRAC.value]
+    counts = metrics[ValidationMetricKey.REGIME_COUNTS.value]
+
+    table = Table(title="Regime-Conditional Performance")
+    table.add_column("Regime", style="cyan")
+    table.add_column("Sharpe", style="green", justify="right")
+    table.add_column("Time", style="green", justify="right")
+    table.add_column("Observations", style="green", justify="right")
+    for name in sharpes:
+        table.add_row(
+            name,
+            f"{sharpes[name]:.4f}",
+            _format_percent(fracs[name]),
+            str(counts[name]),
+        )
+    console.print(table)
+    console.print(Panel("\n".join(result.summary()), title="Regime Report", expand=False))
 
 
 def _print_validation_summary(results: object) -> None:

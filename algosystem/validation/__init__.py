@@ -5,6 +5,10 @@ from __future__ import annotations
 from importlib import import_module
 
 _LAZY_EXPORTS = {
+    "AnalyzeRegimes": (
+        "algosystem.validation.application.analyze_regimes",
+        "AnalyzeRegimes",
+    ),
     "DetectOverfitting": (
         "algosystem.validation.application.detect_overfitting",
         "DetectOverfitting",
@@ -13,6 +17,10 @@ _LAZY_EXPORTS = {
     "OverfitResults": ("algosystem.validation.domain.results", "OverfitResults"),
     "ParameterGrid": ("algosystem.validation.domain.strategy", "ParameterGrid"),
     "ParameterSet": ("algosystem.validation.domain.strategy", "ParameterSet"),
+    "RegimeResult": (
+        "algosystem.validation.domain.statistics.robustness",
+        "RegimeResult",
+    ),
     "SignalAnalysisReport": (
         "algosystem.validation.domain.statistics.signal_analyzer",
         "SignalAnalysisReport",
@@ -38,11 +46,13 @@ def __getattr__(name: str) -> object:
 
 
 __all__ = [
+    "AnalyzeRegimes",
     "DetectOverfitting",
     "OverfitDetector",
     "OverfitResults",
     "ParameterGrid",
     "ParameterSet",
+    "RegimeResult",
     "SignalAnalysisReport",
     "SignalAnalyzer",
     "StrategySpec",

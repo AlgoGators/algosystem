@@ -17,6 +17,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from algosystem.validation.domain.validation_metric import ValidationMetricKey
+
 # -----------------------------------------------------------------------
 # 1. Bootstrap Confidence Interval on Sharpe Ratio
 # -----------------------------------------------------------------------
@@ -487,6 +489,30 @@ class RegimeResult:
                 f"(Sharpe={self.worst_regime_sharpe:.4f})"
             )
         return lines
+
+    def to_metrics(self) -> dict[str, object]:
+        """
+        Return every field keyed by canonical validation metric names.
+
+        Lossless: a caller can rebuild the whole breakdown from this mapping,
+        including the per-regime observation counts needed to tell an empty
+        bucket apart from a genuinely unprofitable one.
+        """
+        return {
+            ValidationMetricKey.OVERALL_SHARPE.value: float(self.overall_sharpe),
+            ValidationMetricKey.REGIME_SHARPES.value: {
+                name: float(sharpe) for name, sharpe in zip(self.regime_names, self.regime_sharpes)
+            },
+            ValidationMetricKey.REGIME_FRAC.value: {
+                name: float(frac) for name, frac in zip(self.regime_names, self.regime_frac)
+            },
+            ValidationMetricKey.REGIME_COUNTS.value: {
+                name: int(count) for name, count in zip(self.regime_names, self.regime_counts)
+            },
+            ValidationMetricKey.WORST_REGIME_SHARPE.value: float(self.worst_regime_sharpe),
+            ValidationMetricKey.WORST_REGIME_NAME.value: self.worst_regime_name,
+            ValidationMetricKey.WORKS_IN_ALL_REGIMES.value: bool(self.works_in_all_regimes),
+        }
 
 
 def regime_conditional_performance(  # noqa: C901

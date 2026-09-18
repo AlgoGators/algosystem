@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Exposed regime-conditional performance analysis through the validation stack:
+  an `AnalyzeRegimes` use case, `AlgoSystem.analyze_regimes()`, an `algosystem
+  regimes` CLI command, and a `RegimeResult.to_metrics()` accessor keyed by
+  `ValidationMetricKey`. The underlying `regime_conditional_performance`
+  statistics were already present but unreachable from any public entry point.
 - Added the validation context for overfitting detection, porting John Riley's
   <john.p.riley1287@gmail.com> statistical core, shipped strategy archetypes,
   chart/report adapters, CLI commands, and facade methods into the

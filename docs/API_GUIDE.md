@@ -15,6 +15,7 @@ from algosystem import (
     OverfitResults,
     ParameterGrid,
     PerformanceMetrics,
+    RegimeResult,
     RepositoryError,
     StrategySpec,
     ValidationError,
@@ -66,6 +67,34 @@ algo.validation_report(report, output="overfit.html")
 ```
 
 The validation HTML report loads Plotly from a CDN when opened.
+
+## Regimes
+
+```python
+from algosystem.backtesting.domain.equity_curve import EquityCurve
+
+curve = EquityCurve.from_series(prices["Strategy"])
+result = algo.analyze_regimes(curve)
+
+print("\n".join(result.summary()))
+print(result.works_in_all_regimes, result.worst_regime_name)
+```
+
+Classify on a benchmark instead of the strategy's own volatility by passing
+`market_returns`. Both series must cover the same dates — when they carry a
+`DatetimeIndex` this is checked, because regimes are assigned positionally:
+
+```python
+result = algo.analyze_regimes(curve, market_returns=benchmark_curve)
+```
+
+Options: `n_regimes` (default 3), `vol_window` (default 21), `annualize`
+(default 252), and `input_kind` / `market_input_kind` (`"returns"` or
+`"levels"`) for raw array and pandas input. An `EquityCurve` always holds levels
+and converts automatically.
+
+`result.to_metrics()` returns every field keyed by `ValidationMetricKey`, which
+is the serialization-friendly form.
 
 ## Persistence
 

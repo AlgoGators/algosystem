@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
-from typing import Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence
 
 import pandas as pd
 from rich.console import Console
@@ -35,6 +35,10 @@ from algosystem.backtesting.domain.ports import (
 from algosystem.shared.errors import ConfigurationError
 from algosystem.shared.metric_key import MetricKey
 from algosystem.shared.values import RunId
+
+if TYPE_CHECKING:
+    from algosystem.validation.application.equity_curve_bridge import SeriesKind
+    from algosystem.validation.domain.statistics.robustness import RegimeResult
 
 console = Console()
 
@@ -120,6 +124,30 @@ class AlgoSystem:
             seed=seed,
             shuffle_method=shuffle_method,
             n_workers=n_workers,
+        )
+
+    def analyze_regimes(
+        self,
+        returns: object,
+        *,
+        market_returns: object = None,
+        n_regimes: int = 3,
+        vol_window: int = 21,
+        annualize: float = 252.0,
+        input_kind: "SeriesKind" = "returns",
+        market_input_kind: Optional["SeriesKind"] = None,
+    ) -> "RegimeResult":
+        """Break realized performance down by volatility regime."""
+        from algosystem.validation.application.analyze_regimes import AnalyzeRegimes
+
+        return AnalyzeRegimes().execute(
+            returns,
+            market_returns=market_returns,
+            n_regimes=n_regimes,
+            vol_window=vol_window,
+            annualize=annualize,
+            input_kind=input_kind,
+            market_input_kind=market_input_kind,
         )
 
     def validation_report(
