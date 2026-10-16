@@ -141,7 +141,7 @@ def plot_parameter_sensitivity(
             if show_individual:
                 for points in slices.values():
                     points.sort()
-                    xs, ys = zip(*points)
+                    xs, ys = zip(*points, strict=True)
                     ax.plot(xs, ys, color="grey", alpha=0.15, linewidth=0.7, zorder=1)
 
             value_sharpes = {value: [] for value in values}
@@ -154,8 +154,8 @@ def plot_parameter_sensitivity(
 
             ax.fill_between(
                 xs_mean,
-                [mean - std for mean, std in zip(means, stds)],
-                [mean + std for mean, std in zip(means, stds)],
+                [mean - std for mean, std in zip(means, stds, strict=True)],
+                [mean + std for mean, std in zip(means, stds, strict=True)],
                 alpha=0.25,
                 color="steelblue",
                 zorder=2,

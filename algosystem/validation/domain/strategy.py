@@ -96,7 +96,7 @@ class ParameterGrid:
         keys = [name for name, _ in self._items]
         value_lists = [values for _, values in self._items]
         for combo in itertools.product(*value_lists):
-            yield ParameterSet(zip(keys, combo))
+            yield ParameterSet(zip(keys, combo, strict=True))
 
     def to_dict(self) -> dict[str, list[object]]:
         """Return a mutable dict copy preserving stable parameter order."""

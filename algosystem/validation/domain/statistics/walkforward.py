@@ -123,7 +123,7 @@ def walk_forward_analysis(
     n = len(returns)
     keys = sorted(param_grid.keys())
     values = [param_grid[k] for k in keys]
-    param_list = [dict(zip(keys, combo)) for combo in itertools.product(*values)]
+    param_list = [dict(zip(keys, combo, strict=True)) for combo in itertools.product(*values)]
 
     # Compute fold boundaries
     # Each fold: [fold_start, fold_end) with IS = first is_ratio, OOS = rest
