@@ -31,6 +31,10 @@ _LAZY_EXPORTS = {
     "Ratio": ("algosystem.shared.values", "Ratio"),
     "RunId": ("algosystem.shared.values", "RunId"),
     "OverfitResults": ("algosystem.validation.domain.results", "OverfitResults"),
+    "RegimeResult": (
+        "algosystem.validation.domain.statistics.robustness",
+        "RegimeResult",
+    ),
     "ParameterGrid": ("algosystem.validation.domain.strategy", "ParameterGrid"),
     "StrategySpec": ("algosystem.validation.domain.strategy", "StrategySpec"),
     "ValidationMetricKey": (
@@ -71,6 +75,7 @@ __all__ = [
     "RepositoryError",
     "RunId",
     "OverfitResults",
+    "RegimeResult",
     "ParameterGrid",
     "StrategySpec",
     "ValidationError",

@@ -79,6 +79,7 @@ algosystem backtest strategy.csv --price-column Strategy --detailed
 algosystem tearsheet strategy.csv --price-column Strategy --output tearsheet.html
 algosystem validate strategy.csv --strategy momentum --reps 200 --seed 7 --output overfit.html
 algosystem validate-strategies
+algosystem regimes strategy.csv --price-column Strategy
 algosystem benchmarks
 algosystem db save strategy.csv --price-column Strategy --name strategy-v1
 ```

@@ -12,6 +12,7 @@ def test_cli_help_lists_phase_5_commands():
     assert "tearsheet" in result.output
     assert "validate" in result.output
     assert "validate-strategies" in result.output
+    assert "regimes" in result.output
     assert "benchmarks" in result.output
     assert "db" in result.output
 
@@ -24,7 +25,15 @@ def test_cli_version():
 
 
 def test_top_level_subcommand_help():
-    for command in ("backtest", "tearsheet", "validate", "validate-strategies", "benchmarks", "db"):
+    for command in (
+        "backtest",
+        "tearsheet",
+        "validate",
+        "validate-strategies",
+        "regimes",
+        "benchmarks",
+        "db",
+    ):
         result = CliRunner().invoke(cli, [command, "--help"])
 
         assert result.exit_code == 0
