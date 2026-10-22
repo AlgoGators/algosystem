@@ -16,7 +16,9 @@ python3 - <<'CORPUS'
 import os
 from zipfile import ZipFile
 
+from algosystem.shared.metric_key import LEGACY_ALIASES, MetricKey
+
 with ZipFile(os.path.join(os.environ["OUT"], "metric_key_fuzzer_seed_corpus.zip"), "w") as archive:
-    for name in ("sharpe_ratio", "beta", "annual_return", "unknown_metric"):
+    for name in (MetricKey.SHARPE_RATIO.value, MetricKey.BETA.value, *LEGACY_ALIASES, "invalid"):
         archive.writestr(name, name)
 CORPUS
