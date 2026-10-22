@@ -501,13 +501,16 @@ class RegimeResult:
         return {
             ValidationMetricKey.OVERALL_SHARPE.value: float(self.overall_sharpe),
             ValidationMetricKey.REGIME_SHARPES.value: {
-                name: float(sharpe) for name, sharpe in zip(self.regime_names, self.regime_sharpes)
+                name: float(sharpe)
+                for name, sharpe in zip(self.regime_names, self.regime_sharpes, strict=True)
             },
             ValidationMetricKey.REGIME_FRAC.value: {
-                name: float(frac) for name, frac in zip(self.regime_names, self.regime_frac)
+                name: float(frac)
+                for name, frac in zip(self.regime_names, self.regime_frac, strict=True)
             },
             ValidationMetricKey.REGIME_COUNTS.value: {
-                name: int(count) for name, count in zip(self.regime_names, self.regime_counts)
+                name: int(count)
+                for name, count in zip(self.regime_names, self.regime_counts, strict=True)
             },
             ValidationMetricKey.WORST_REGIME_SHARPE.value: float(self.worst_regime_sharpe),
             ValidationMetricKey.WORST_REGIME_NAME.value: self.worst_regime_name,

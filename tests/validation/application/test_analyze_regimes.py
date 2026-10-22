@@ -237,13 +237,17 @@ class TestInsufficientData:
         """
         result = AnalyzeRegimes().execute(np.linspace(0.001, 0.02, 30), vol_window=5)
 
-        thin = [name for name, count in zip(result.regime_names, result.regime_counts) if count < 5]
+        thin = [
+            name
+            for name, count in zip(result.regime_names, result.regime_counts, strict=True)
+            if count < 5
+        ]
         assert thin, "this fixture is chosen to produce a thin bucket"
         for name in thin:
             index = result.regime_names.index(name)
             assert result.regime_sharpes[index] == 0.0
         assert result.to_metrics()[ValidationMetricKey.REGIME_COUNTS.value] == dict(
-            zip(result.regime_names, result.regime_counts)
+            zip(result.regime_names, result.regime_counts, strict=True)
         )
 
 

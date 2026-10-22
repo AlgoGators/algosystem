@@ -196,13 +196,13 @@ class TestRegimeResultOutput:
         }
         assert metrics[ValidationMetricKey.OVERALL_SHARPE.value] == result.overall_sharpe
         assert metrics[ValidationMetricKey.REGIME_SHARPES.value] == dict(
-            zip(result.regime_names, result.regime_sharpes)
+            zip(result.regime_names, result.regime_sharpes, strict=True)
         )
         assert metrics[ValidationMetricKey.REGIME_FRAC.value] == dict(
-            zip(result.regime_names, result.regime_frac)
+            zip(result.regime_names, result.regime_frac, strict=True)
         )
         assert metrics[ValidationMetricKey.REGIME_COUNTS.value] == dict(
-            zip(result.regime_names, result.regime_counts)
+            zip(result.regime_names, result.regime_counts, strict=True)
         )
         assert metrics[ValidationMetricKey.WORST_REGIME_SHARPE.value] == result.worst_regime_sharpe
         assert metrics[ValidationMetricKey.WORST_REGIME_NAME.value] == result.worst_regime_name
