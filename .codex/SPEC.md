@@ -169,10 +169,9 @@ Fix these as part of whichever phase touches the code. Do not leave them.
 
 ## 7. Conventions
 
-- Python 3.9+ compatible syntax (`pyproject.toml` declares `>=3.9,<4.0`). Use
-  `from __future__ import annotations`; do not use `X | Y` unions at runtime,
-  `slots=True` on dataclasses is 3.10+ so guard it or omit it if targeting 3.9.
-  **Confirm the floor in `pyproject.toml` before choosing syntax.**
+- Python 3.11+ compatible syntax (`pyproject.toml` declares `>=3.11,<4.0`). Use
+  `from __future__ import annotations` and confirm the floor in `pyproject.toml`
+  before choosing syntax.
 - Full type hints on every public function and method.
 - Google-style docstrings on public API; no docstring padding on trivial code.
 - `black` (line-length 100) and `isort` (profile=black) formatting.
