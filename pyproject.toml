@@ -65,7 +65,7 @@ optional = true
 sphinx = "^7.3.7"
 sphinx-rtd-theme = ">=2,<4"
 sphinx-copybutton = "^0.5.2"
-myst-parser = "^3.0.0"
+myst-parser = ">=3,<5"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
