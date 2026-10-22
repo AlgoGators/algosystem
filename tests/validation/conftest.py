@@ -63,3 +63,30 @@ def quick_detector(noise_returns, small_grid):
         n_workers=1,
         seed=42,
     )
+
+
+def regime_returns(seed: int = 7, size: int = 600) -> np.ndarray:
+    """Returns with a sharp volatility break: calm for the first half, stormy after."""
+    rng = np.random.default_rng(seed)
+    return np.concatenate(
+        [
+            rng.normal(0.0005, 0.001, size=size // 2),
+            rng.normal(0.0005, 0.02, size=size // 2),
+        ]
+    )
+
+
+def regime_levels(returns: np.ndarray, initial_value: float = 100.0) -> np.ndarray:
+    """Levels whose pct_change reproduces `returns` exactly (one extra opening point)."""
+    return np.concatenate([[initial_value], initial_value * np.cumprod(1.0 + returns)])
+
+
+def regime_curve(returns: np.ndarray):
+    """An EquityCurve over `regime_levels`, dated daily from 2020-01-01."""
+    import pandas as pd
+
+    from algosystem.backtesting.domain.equity_curve import EquityCurve
+
+    levels = regime_levels(returns)
+    index = pd.date_range("2020-01-01", periods=len(levels), freq="D")
+    return EquityCurve.from_series(pd.Series(levels, index=index))

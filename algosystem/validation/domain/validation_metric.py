@@ -102,8 +102,11 @@ class ValidationMetricKey(str, Enum):
     # Regime and surface metrics
     REGIME_SHARPES = "regime_sharpes"
     REGIME_FRAC = "regime_frac"
+    REGIME_COUNTS = "regime_counts"
     OVERALL_SHARPE = "overall_sharpe"
     WORST_REGIME_SHARPE = "worst_regime_sharpe"
+    WORST_REGIME_NAME = "worst_regime_name"
+    WORKS_IN_ALL_REGIMES = "works_in_all_regimes"
     ROBUSTNESS_RATIO = "robustness_ratio"
     FRAC_POSITIVE = "frac_positive"
     FRAC_ABOVE_HALF = "frac_above_half"
