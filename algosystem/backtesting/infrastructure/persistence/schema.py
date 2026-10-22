@@ -13,7 +13,7 @@ from sqlalchemy.schema import CreateSchema
 from algosystem.shared.errors import ConfigurationError
 from algosystem.shared.metric_key import MetricKey
 
-DEFAULT_SCHEMA = "backtest"
+DEFAULT_SCHEMA = "algosystem_backtest"
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 Base = declarative_base()

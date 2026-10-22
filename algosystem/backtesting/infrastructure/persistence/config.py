@@ -22,7 +22,7 @@ class DatabaseConfig:
     database: str
     user: str
     password: str
-    schema: str = "backtest"
+    schema: str = "algosystem_backtest"
     pool_size: int = 5
 
     def __post_init__(self) -> None:

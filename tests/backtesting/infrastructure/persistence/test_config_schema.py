@@ -20,7 +20,7 @@ def test_database_config_from_env_is_explicit_and_redacts_password():
 
     assert config.host == "localhost"
     assert config.port == 5432
-    assert config.schema == "backtest"
+    assert config.schema == "algosystem_backtest"
     assert config.url() == "postgresql://tester:secret@localhost:5432/algosystem"
     assert "secret" not in repr(config)
     assert "<redacted>" in repr(config)
