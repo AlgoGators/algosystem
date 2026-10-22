@@ -74,6 +74,8 @@ class TestRegimeClassification:
         result = regime_conditional_performance(returns, vol_window=VOL_WINDOW)
         labels = _regime_labels(returns, vol_window=VOL_WINDOW)
 
+        assert result.regime_counts == [int(np.count_nonzero(labels == i)) for i in range(3)]
+
         low_vol = float(np.std(returns[labels == 0], ddof=1))
         high_vol = float(np.std(returns[labels == 2], ddof=1))
 

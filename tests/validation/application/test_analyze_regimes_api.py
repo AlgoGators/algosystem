@@ -5,7 +5,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from algosystem.backtesting.domain.equity_curve import EquityCurve
 from algosystem.backtesting.infrastructure.fake_calculator import FakeMetricsCalculator
 from algosystem.interfaces.api import AlgoSystem
 from algosystem.shared.errors import ValidationError

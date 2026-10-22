@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from algosystem.backtesting import EquityCurve
 from algosystem.shared.errors import ValidationError
 from algosystem.validation.application.analyze_regimes import AnalyzeRegimes
 from algosystem.validation.domain.statistics.robustness import regime_conditional_performance
