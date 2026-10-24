@@ -32,7 +32,7 @@ quantstats = ">=0.0.64,<0.0.87"
 # quantstats <0.0.66 imports IPython at module scope without declaring it, so
 # it must be declared here. Keep the existing <9 cap until compatibility with
 # IPython 9 is verified.
-ipython = ">=8.18.1,<9"
+ipython = ">=8.18.1,<10"
 pyarrow = ">=23.0.1"
 rich = ">=14,<16"
 openpyxl = "^3.1.5"
