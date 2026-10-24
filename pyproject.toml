@@ -61,7 +61,7 @@ import-linter = "^2.3.0"
 optional = true
 
 [tool.poetry.group.docs.dependencies]
-sphinx = "^7.3.7"
+sphinx = ">=7.3.7,<9.0.0"
 sphinx-rtd-theme = ">=2,<4"
 sphinx-copybutton = "^0.5.2"
 myst-parser = ">=3,<5"
